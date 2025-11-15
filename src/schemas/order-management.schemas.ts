@@ -5,8 +5,8 @@
  */
 
 import { z } from 'zod';
-import { OrderType, DeliveryStatus } from '../types/order-status';
-import { DeliveryDriver } from '../types/skyfi-api';
+import { OrderType, DeliveryStatus } from '../types/order-status.js';
+import { DeliveryDriver } from '../types/skyfi-api.js';
 
 /**
  * Schema for list orders request parameters

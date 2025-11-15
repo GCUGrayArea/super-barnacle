@@ -2,6 +2,7 @@
   "name": "skyfi-mcp",
   "version": "1.0.0",
   "description": "SkyFi Model Context Protocol Server - AI-powered satellite imagery ordering through MCP",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {

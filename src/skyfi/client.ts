@@ -8,16 +8,16 @@
  */
 
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosError } from 'axios';
-import { logger } from '../lib/logger';
+import { logger } from '../lib/logger.js';
 import {
   SkyFiAPIError,
   AuthenticationError,
   NotFoundError,
   RateLimitError,
-} from '../lib/errors';
-import { retryWithBackoff } from '../lib/retry';
-import type { SkyFiConfig } from './config';
-import type { BadRequestResponse } from '../types/skyfi-api';
+} from '../lib/errors.js';
+import { retryWithBackoff } from '../lib/retry.js';
+import type { SkyFiConfig } from './config.js';
+import type { BadRequestResponse } from '../types/skyfi-api.js';
 
 /**
  * SkyFi API HTTP Client

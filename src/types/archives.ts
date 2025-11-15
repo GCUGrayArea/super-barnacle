@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import type { ProductType, Provider, Resolution } from './skyfi-api';
+import type { ProductType, Provider, Resolution } from './skyfi-api.js';
 
 /**
  * Archive search request parameters

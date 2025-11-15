@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-import { OrderType, DeliveryStatus, DeliveryEventInfo } from './order-status';
+import { OrderType, DeliveryStatus, DeliveryEventInfo } from './order-status.js';
 
 /**
  * Product types available in SkyFi catalog

@@ -16,15 +16,15 @@ import {
   GCSDeliveryParams,
   AzureConnectionStringParams,
   AzureEntraAppParams,
-} from '@/types/orders';
+} from '../types/orders.js';
 import {
   S3DeliveryParamsSchema,
   GCSDeliveryParamsSchema,
   AzureConnectionStringParamsSchema,
   AzureEntraAppParamsSchema,
-} from '@/schemas/orders.schemas';
-import { DeliveryValidationError } from './errors';
-import { logger } from './logger';
+} from '../schemas/orders.schemas.js';
+import { DeliveryValidationError } from './errors.js';
+import { logger } from './logger.js';
 
 /**
  * Validate delivery configuration based on the delivery driver

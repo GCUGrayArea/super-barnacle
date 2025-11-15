@@ -9,12 +9,12 @@
  * @packageDocumentation
  */
 
-import { SkyFiClient } from './client';
-import { logger } from '../lib/logger';
+import { SkyFiClient } from './client.js';
+import { logger } from '../lib/logger.js';
 import {
   ListOrdersResponse,
   OrderInfoResponse,
-} from '../types/skyfi-api';
+} from '../types/skyfi-api.js';
 import {
   validateListOrdersParams,
   validateOrderId,
@@ -23,8 +23,8 @@ import {
   validateOrderInfoResponse,
   type ListOrdersParams,
   type OrderRedeliveryParams,
-} from '../schemas/order-management.schemas';
-import { OrderType } from '../types/order-status';
+} from '../schemas/order-management.schemas.js';
+import { OrderType } from '../types/order-status.js';
 
 /**
  * Order Management Service

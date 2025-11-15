@@ -7,7 +7,7 @@
  */
 
 import { z } from 'zod';
-import { ProductType, Resolution, Provider } from '@/types/skyfi-api';
+import { ProductType, Resolution, Provider } from '../types/skyfi-api.js';
 
 /**
  * WKT (Well-Known Text) polygon validation

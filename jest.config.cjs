@@ -1,9 +1,15 @@
 module.exports = {
-  // Use ts-jest preset for TypeScript support
-  preset: 'ts-jest',
+  // Use ts-jest preset for TypeScript support with ES modules
+  preset: 'ts-jest/presets/default-esm',
 
   // Test environment
   testEnvironment: 'node',
+
+  // Enable ES modules
+  extensionsToTreatAsEsm: ['.ts'],
+
+  // Add module resolution
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
 
   // Root directory
   roots: ['<rootDir>/src', '<rootDir>/__tests__'],
@@ -59,10 +65,12 @@ module.exports = {
     '^.+\\.ts$': [
       'ts-jest',
       {
+        useESM: true,
         tsconfig: {
           esModuleInterop: true,
           allowSyntheticDefaultImports: true,
           isolatedModules: true,
+          module: 'ESNext',
         },
       },
     ],
@@ -83,4 +91,9 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
 
   modulePathIgnorePatterns: ['/dist/'],
+
+  // Transform node_modules that are ES modules
+  transformIgnorePatterns: [
+    'node_modules/(?!(@modelcontextprotocol)/)',
+  ],
 };

@@ -12,13 +12,14 @@ import {
   ProductType,
   Resolution,
   Provider,
-} from '../types/notifications';
+} from '../types/notifications.js';
 
 /**
  * Maximum area for AOI in square kilometers
  * Archive searches and notifications are limited to 500,000 sqkm
+ * Note: Currently unused but reserved for future validation
  */
-const MAX_AOI_AREA_SQKM = 500000;
+// const MAX_AOI_AREA_SQKM = 500000;
 
 /**
  * Maximum number of vertices allowed in AOI polygon
@@ -41,7 +42,7 @@ export const isValidWKT = (value: string): boolean => {
 
   // Check if it's properly formatted with coordinates
   const coordMatch = value.match(/POLYGON\s*\(\(([\s\S]+)\)\)/i);
-  if (!coordMatch) {
+  if (!coordMatch || !coordMatch[1]) {
     return false;
   }
 
@@ -57,7 +58,13 @@ export const isValidWKT = (value: string): boolean => {
   // Validate each point has two coordinates
   return points.every((point) => {
     const parts = point.trim().split(/\s+/);
-    return parts.length === 2 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]));
+    return (
+      parts.length === 2 &&
+      parts[0] !== undefined &&
+      parts[1] !== undefined &&
+      !isNaN(parseFloat(parts[0])) &&
+      !isNaN(parseFloat(parts[1]))
+    );
   });
 };
 
