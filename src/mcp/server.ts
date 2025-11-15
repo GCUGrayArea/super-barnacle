@@ -6,11 +6,60 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import {
+  ListToolsRequestSchema,
+  CallToolRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { logger } from '../lib/logger.js';
 import { MCPServerConfig } from './config.js';
 import { SkyFiClient } from '../skyfi/client.js';
 import { createConfigFromEnv } from '../skyfi/config.js';
+
+// Import all MCP tools
+import {
+  searchArchivesToolDefinition,
+  executeSearchArchives,
+} from './tools/search-archives.js';
+import {
+  getArchiveToolDefinition,
+  executeGetArchive,
+} from './tools/get-archive.js';
+import {
+  archiveOrderTool,
+  handleArchiveOrder,
+} from './tools/order-archive.js';
+import {
+  taskingOrderTool,
+  handleTaskingOrder,
+} from './tools/order-tasking.js';
+import {
+  checkTaskingFeasibilityTool,
+  executeCheckTaskingFeasibility,
+} from './tools/check-feasibility.js';
+import {
+  predictSatellitePassesTool,
+  executePredictSatellitePasses,
+} from './tools/predict-passes.js';
+import {
+  LIST_ORDERS_TOOL,
+  executeListOrders,
+} from './tools/list-orders.js';
+import {
+  GET_ORDER_DETAILS_TOOL,
+  executeGetOrderDetails,
+} from './tools/get-order.js';
+import {
+  TRIGGER_REDELIVERY_TOOL,
+  executeTriggerRedelivery,
+} from './tools/redelivery.js';
+import * as createNotificationTool from './tools/create-notification.js';
+import * as listNotificationsTool from './tools/list-notifications.js';
+import * as deleteNotificationTool from './tools/delete-notification.js';
+import {
+  getPricingInfoToolDefinition,
+  getPricingInfo,
+} from './tools/get-pricing.js';
 
 /**
  * SkyFi MCP Server
@@ -50,9 +99,169 @@ export class SkyFiMCPServer {
       logger.info('MCP server initialized successfully');
     };
 
+    // Register tools
+    this.registerTools();
+
     logger.info('SkyFi MCP Server created', {
       name: config.name,
       version: config.version,
+    });
+  }
+
+  /**
+   * Register MCP tools
+   */
+  private registerTools(): void {
+    // Register list_tools handler
+    this.mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
+      return {
+        tools: [
+          searchArchivesToolDefinition,
+          getArchiveToolDefinition,
+          archiveOrderTool,
+          taskingOrderTool,
+          checkTaskingFeasibilityTool,
+          predictSatellitePassesTool,
+          LIST_ORDERS_TOOL,
+          GET_ORDER_DETAILS_TOOL,
+          TRIGGER_REDELIVERY_TOOL,
+          {
+            name: createNotificationTool.TOOL_NAME,
+            description: createNotificationTool.TOOL_DESCRIPTION,
+            inputSchema: createNotificationTool.TOOL_INPUT_SCHEMA,
+          },
+          {
+            name: listNotificationsTool.TOOL_NAME,
+            description: listNotificationsTool.TOOL_DESCRIPTION,
+            inputSchema: listNotificationsTool.TOOL_INPUT_SCHEMA,
+          },
+          {
+            name: deleteNotificationTool.TOOL_NAME,
+            description: deleteNotificationTool.TOOL_DESCRIPTION,
+            inputSchema: deleteNotificationTool.TOOL_INPUT_SCHEMA,
+          },
+          getPricingInfoToolDefinition(),
+        ],
+      };
+    });
+
+    // Register call_tool handler
+    this.mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args } = request.params;
+
+      logger.info('Tool call requested', { toolName: name });
+
+      try {
+        let result: string | { content: Array<{ type: string; text: string }> };
+
+        switch (name) {
+          case 'search_satellite_archives':
+            result = await executeSearchArchives(args, this.skyfiClient);
+            break;
+
+          case 'get_archive_details':
+            result = await executeGetArchive(args, this.skyfiClient);
+            break;
+
+          case 'order_archive_imagery':
+            result = await handleArchiveOrder(args, this.skyfiClient);
+            break;
+
+          case 'order_tasking_imagery':
+            result = await handleTaskingOrder(args, this.skyfiClient);
+            break;
+
+          case 'check_tasking_feasibility':
+            result = await executeCheckTaskingFeasibility(this.skyfiClient, args);
+            break;
+
+          case 'predict_satellite_passes':
+            result = await executePredictSatellitePasses(this.skyfiClient, args);
+            break;
+
+          case 'list_orders':
+            return await executeListOrders(this.skyfiClient, args);
+
+          case 'get_order_details':
+            return await executeGetOrderDetails(this.skyfiClient, args);
+
+          case 'trigger_order_redelivery':
+            return await executeTriggerRedelivery(this.skyfiClient, args);
+
+          case 'create_monitoring_notification':
+            return await createNotificationTool.executeCreateNotification(
+              this.skyfiClient,
+              args
+            );
+
+          case 'list_notifications':
+            return await listNotificationsTool.executeListNotifications(
+              this.skyfiClient,
+              args
+            );
+
+          case 'delete_notification':
+            return await deleteNotificationTool.executeDeleteNotification(
+              this.skyfiClient,
+              args
+            );
+
+          case 'get_pricing_info':
+            result = await getPricingInfo(this.skyfiClient, args);
+            break;
+
+          default:
+            throw new Error(`Unknown tool: ${name}`);
+        }
+
+        // If result is already in MCP format, return it; otherwise wrap it
+        if (typeof result === 'object' && 'content' in result) {
+          return result;
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: result as string,
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error('Tool execution error', {
+          toolName: name,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error executing tool ${name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    });
+
+    logger.info('MCP tools registered', {
+      count: 13,
+      tools: [
+        'search_satellite_archives',
+        'get_archive_details',
+        'order_archive_imagery',
+        'order_tasking_imagery',
+        'check_tasking_feasibility',
+        'predict_satellite_passes',
+        'list_orders',
+        'get_order_details',
+        'trigger_order_redelivery',
+        'create_monitoring_notification',
+        'list_notifications',
+        'delete_notification',
+        'get_pricing_info',
+      ],
     });
   }
 
