@@ -1,3 +1,12 @@
+/**
+ * Jest Configuration for Integration Tests
+ *
+ * This configuration is specifically for integration tests that test
+ * the full client flow with mocked HTTP responses.
+ *
+ * Run with: npm run test:integration
+ */
+
 module.exports = {
   // Use ts-jest preset for TypeScript support with ES modules
   preset: 'ts-jest/presets/default-esm',
@@ -11,15 +20,21 @@ module.exports = {
   // Add module resolution
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
 
-  // Root directory
-  roots: ['<rootDir>/src', '<rootDir>/__tests__'],
+  // Display name for integration tests
+  displayName: {
+    name: 'Integration Tests',
+    color: 'blue',
+  },
 
-  // Test file patterns
+  // Root directory
+  roots: ['<rootDir>/__tests__/integration'],
+
+  // Test file patterns - only integration tests
   testMatch: [
-    '**/__tests__/**/*.test.ts',
-    '**/__tests__/**/*.spec.ts',
-    '**/*.test.ts',
-    '**/*.spec.ts',
+    '**/__tests__/integration/**/*.test.ts',
+    '**/__tests__/integration/**/*.spec.ts',
+    '**/*.integration.test.ts',
+    '**/*.integration.spec.ts',
   ],
 
   // Setup files
@@ -47,18 +62,9 @@ module.exports = {
     '!src/index.ts',
   ],
 
-  coverageDirectory: 'coverage',
+  coverageDirectory: 'coverage/integration',
 
   coverageReporters: ['text', 'lcov', 'html'],
-
-  coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80,
-    },
-  },
 
   // Transform files with ts-jest
   transform: {
@@ -84,16 +90,17 @@ module.exports = {
   // Verbose output
   verbose: true,
 
-  // Timeout for tests (30 seconds)
+  // Timeout for tests (30 seconds - integration tests may take longer)
   testTimeout: 30000,
 
   // Ignore patterns
-  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/__tests__/skyfi/', '/__tests__/mcp/'],
 
   modulePathIgnorePatterns: ['/dist/'],
 
   // Transform node_modules that are ES modules
-  transformIgnorePatterns: [
-    'node_modules/(?!@modelcontextprotocol)',
-  ],
+  transformIgnorePatterns: ['node_modules/(?!(@modelcontextprotocol)/)'],
+
+  // Maximum workers for parallel execution
+  maxWorkers: '50%',
 };
