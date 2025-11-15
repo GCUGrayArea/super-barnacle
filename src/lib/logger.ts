@@ -7,7 +7,7 @@
 
 import winston from 'winston';
 
-import type { LogLevel, LogMetadata, LoggerConfig } from '../types/logging';
+import type { LogLevel, LogMetadata, LoggerConfig } from '../types/logging.js';
 
 /**
  * Default logger configuration

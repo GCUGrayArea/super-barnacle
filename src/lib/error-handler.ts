@@ -5,7 +5,7 @@
  * consistent error logging and response formatting throughout the application.
  */
 
-import type { LogMetadata } from '../types/logging';
+import type { LogMetadata } from '../types/logging.js';
 
 import {
   SkyFiAPIError,
@@ -16,8 +16,8 @@ import {
   ConfigurationError,
   TimeoutError,
   isSkyFiError,
-} from './errors';
-import { logger, logError } from './logger';
+} from './errors.js';
+import { logger, logError } from './logger.js';
 
 /**
  * Normalized error response structure

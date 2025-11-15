@@ -18,47 +18,7 @@ process.env['SKYFI_API_KEY'] = process.env['SKYFI_API_KEY'] ?? 'test-api-key-moc
 process.env['OPENAI_API_KEY'] = process.env['OPENAI_API_KEY'] ?? 'test-openai-key-mock';
 process.env['LOG_LEVEL'] = process.env['LOG_LEVEL'] ?? 'error'; // Reduce noise in tests
 
-// Set default test timeout
-jest.setTimeout(30000); // 30 seconds
-
-// Global test setup
-beforeAll(() => {
-  // Any global setup before all tests
-});
-
-// Global test teardown
-afterAll(() => {
-  // Any global cleanup after all tests
-});
-
-// Reset state between tests
-beforeEach(() => {
-  // Clear all mocks before each test
-  jest.clearAllMocks();
-});
-
-afterEach(() => {
-  // Additional cleanup after each test if needed
-});
-
-// Suppress console output in tests unless needed
-/* eslint-disable no-console */
-const originalConsoleError = console.error;
-const originalConsoleWarn = console.warn;
-const originalConsoleLog = console.log;
-
-beforeAll(() => {
-  console.error = jest.fn();
-  console.warn = jest.fn();
-  console.log = jest.fn();
-});
-
-afterAll(() => {
-  console.error = originalConsoleError;
-  console.warn = originalConsoleWarn;
-  console.log = originalConsoleLog;
-});
-/* eslint-enable no-console */
+// Note: Test timeout is configured in jest.config.cjs (30 seconds)
 
 // Export test utilities
 export const testUtils = {

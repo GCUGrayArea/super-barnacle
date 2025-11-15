@@ -1,12 +1,15 @@
 module.exports = {
   // Use ts-jest preset for TypeScript support
-  preset: 'ts-jest',
+  preset: 'ts-jest/presets/default-esm',
 
   // Test environment
   testEnvironment: 'node',
 
   // Root directory
   roots: ['<rootDir>/src', '<rootDir>/__tests__'],
+
+  // Treat .ts files as ESM
+  extensionsToTreatAsEsm: ['.ts'],
 
   // Test file patterns
   testMatch: [
@@ -28,6 +31,7 @@ module.exports = {
     '^@/skyfi/(.*)$': '<rootDir>/src/skyfi/$1',
     '^@/agent/(.*)$': '<rootDir>/src/agent/$1',
     '^@/db/(.*)$': '<rootDir>/src/db/$1',
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 
   // Coverage configuration
@@ -57,6 +61,7 @@ module.exports = {
     '^.+\\.ts$': [
       'ts-jest',
       {
+        useESM: true,
         tsconfig: {
           esModuleInterop: true,
           allowSyntheticDefaultImports: true,

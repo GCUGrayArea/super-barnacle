@@ -25,6 +25,14 @@ module.exports = {
     // Import rules
     'import/prefer-default-export': 'off',
     'import/no-default-export': 'error',
+    'import/extensions': [
+      'error',
+      'ignorePackages',
+      {
+        js: 'always',
+        ts: 'never',
+      },
+    ],
     'import/order': [
       'error',
       {
@@ -102,7 +110,8 @@ module.exports = {
           '**/__tests__/**',
           '**/*.test.ts',
           '**/*.spec.ts',
-          'jest.config.js',
+          'jest.config.cjs',
+          '__tests__/setup.ts',
         ],
       },
     ],
@@ -126,7 +135,7 @@ module.exports = {
     'node_modules',
     'coverage',
     '*.js',
-    '!.eslintrc.js',
-    '!jest.config.js',
+    '!.eslintrc.cjs',
+    '!jest.config.cjs',
   ],
 };

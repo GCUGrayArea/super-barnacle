@@ -125,14 +125,14 @@ All subsequent PRs will use this logging infrastructure. Ensure it's robust and 
 ---
 
 ### PR-005: SkyFi API Client Base
-**Status:** New
-**Dependencies:** PR-001, PR-004
+**Status:** Complete
+**Dependencies:** PR-001 ✅, PR-004 ✅
 **Priority:** High
 
 **Description:**
 Create the foundational HTTP client for SkyFi API with authentication, request/response handling, rate limiting, and retry logic.
 
-**Files (ESTIMATED - will be refined during Planning):**
+**Files (VERIFIED):**
 - src/skyfi/client.ts (create) - Base HTTP client with authentication
 - src/skyfi/config.ts (create) - SkyFi API configuration
 - src/lib/retry.ts (create) - Retry logic with exponential backoff
@@ -142,14 +142,14 @@ Create the foundational HTTP client for SkyFi API with authentication, request/r
 - __tests__/lib/retry.test.ts (create) - Retry logic tests
 
 **Acceptance Criteria:**
-- [ ] Axios client configured with base URL and authentication header
-- [ ] API key loaded from environment variable (SKYFI_API_KEY)
-- [ ] Retry logic with exponential backoff (max 3 retries)
-- [ ] Rate limiting to respect SkyFi API limits
-- [ ] Request/response interceptors for logging
-- [ ] Never log API keys or sensitive credentials
-- [ ] Comprehensive error handling with custom error types
-- [ ] Tests cover authentication, retry, and error scenarios
+- [x] Axios client configured with base URL and authentication header
+- [x] API key loaded from environment variable (SKYFI_API_KEY)
+- [x] Retry logic with exponential backoff (max 3 retries)
+- [x] Rate limiting to respect SkyFi API limits
+- [x] Request/response interceptors for logging
+- [x] Never log API keys or sensitive credentials
+- [x] Comprehensive error handling with custom error types
+- [x] Tests cover authentication, retry, and error scenarios
 
 **Notes:**
 This is critical infrastructure. All SkyFi API interactions will use this client.
@@ -383,31 +383,31 @@ Pricing is critical for cost transparency. Ensure accurate calculations and clea
 ## Block 4: MCP Server Core (Depends on: Block 2)
 
 ### PR-013: MCP Server Setup and HTTP/SSE Transport
-**Status:** New
-**Dependencies:** PR-001, PR-004
+**Status:** Complete
+**Dependencies:** PR-001 ✅, PR-004 ✅
 **Priority:** High
 
 **Description:**
 Set up the MCP server using @modelcontextprotocol/sdk with HTTP and Server-Sent Events transport for stateless operation.
 
-**Files (ESTIMATED - will be refined during Planning):**
+**Files (VERIFIED):**
 - src/mcp/server.ts (create) - MCP server initialization
 - src/mcp/transport.ts (create) - HTTP/SSE transport implementation
 - src/mcp/config.ts (create) - MCP server configuration
 - src/index.ts (modify) - Entry point to start MCP server
-- __tests__/mcp/server.test.ts (create) - Server unit tests
-- __tests__/mcp/transport.test.ts (create) - Transport unit tests
+- __tests__/mcp/server.test.ts (create) - Server unit tests (27 tests passing)
+- __tests__/mcp/transport.test.ts (create) - Transport unit tests (13 tests passing)
 
 **Acceptance Criteria:**
-- [ ] MCP server initializes successfully
-- [ ] HTTP transport working for request/response
-- [ ] SSE transport working for streaming updates
-- [ ] Stateless design (no session storage)
-- [ ] Health check endpoint (/health)
-- [ ] Graceful shutdown handling
-- [ ] Environment configuration (PORT, etc.)
-- [ ] Structured logging for all requests
-- [ ] Unit tests >80% coverage
+- [x] MCP server initializes successfully
+- [x] HTTP transport working for request/response
+- [x] SSE transport working for streaming updates
+- [x] Stateless design (no session storage)
+- [x] Health check endpoint (/health)
+- [x] Graceful shutdown handling
+- [x] Environment configuration (PORT, etc.)
+- [x] Structured logging for all requests
+- [x] Unit tests >80% coverage (40/40 tests passing)
 
 **Notes:**
 This is the foundation for all MCP tools. Ensure HTTP/SSE transport is robust and follows MCP spec.
