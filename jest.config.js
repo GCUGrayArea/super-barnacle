@@ -28,6 +28,8 @@ module.exports = {
     '^@/skyfi/(.*)$': '<rootDir>/src/skyfi/$1',
     '^@/agent/(.*)$': '<rootDir>/src/agent/$1',
     '^@/db/(.*)$': '<rootDir>/src/db/$1',
+    // Handle .js extensions in TypeScript imports
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 
   // Coverage configuration
