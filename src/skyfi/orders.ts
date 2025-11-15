@@ -8,20 +8,20 @@
  * @packageDocumentation
  */
 
-import { SkyFiClient } from './client';
-import { logger } from '../lib/logger';
-import { ValidationError } from '../lib/errors';
-import { validateDeliveryConfiguration, validateWebhookUrl } from '../lib/delivery-validator';
+import { SkyFiClient } from './client.js';
+import { logger } from '../lib/logger.js';
+import { ValidationError } from '../lib/errors.js';
+import { validateDeliveryConfiguration, validateWebhookUrl } from '../lib/delivery-validator.js';
 import {
   ArchiveOrderRequest,
   TaskingOrderRequest,
   ArchiveOrderResponse,
   TaskingOrderResponse,
-} from '../types/orders';
+} from '../types/orders.js';
 import {
   ArchiveOrderRequestSchema,
   TaskingOrderRequestSchema,
-} from '../schemas/orders.schemas';
+} from '../schemas/orders.schemas.js';
 
 /**
  * Place an archive order for existing satellite imagery
@@ -30,7 +30,7 @@ import {
  * and will be delivered to your specified cloud storage location.
  *
  * @param params - Archive order parameters
- * @param client - Optional SkyFi client instance (creates new one if not provided)
+ * @param client - SkyFi client instance
  * @returns Promise resolving to archive order response
  * @throws {ValidationError} If request parameters are invalid
  * @throws {DeliveryValidationError} If delivery configuration is invalid
@@ -38,7 +38,7 @@ import {
  */
 export async function placeArchiveOrder(
   params: ArchiveOrderRequest,
-  client?: SkyFiClient,
+  client: SkyFiClient,
 ): Promise<ArchiveOrderResponse> {
   logger.info('Placing archive order', {
     archiveId: params.archiveId,
@@ -63,11 +63,8 @@ export async function placeArchiveOrder(
     validateWebhookUrl(params.webhookUrl);
   }
 
-  // Create client if not provided
-  const apiClient = client ?? new SkyFiClient();
-
   try {
-    const response = await apiClient.post<ArchiveOrderResponse>(
+    const response = await client.post<ArchiveOrderResponse>(
       '/order-archive',
       params,
     );
@@ -94,7 +91,7 @@ export async function placeArchiveOrder(
  * This is a more complex and expensive operation than archive orders.
  *
  * @param params - Tasking order parameters
- * @param client - Optional SkyFi client instance (creates new one if not provided)
+ * @param client - SkyFi client instance
  * @returns Promise resolving to tasking order response
  * @throws {ValidationError} If request parameters are invalid
  * @throws {DeliveryValidationError} If delivery configuration is invalid
@@ -102,7 +99,7 @@ export async function placeArchiveOrder(
  */
 export async function placeTaskingOrder(
   params: TaskingOrderRequest,
-  client?: SkyFiClient,
+  client: SkyFiClient,
 ): Promise<TaskingOrderResponse> {
   logger.info('Placing tasking order', {
     productType: params.productType,
@@ -149,11 +146,8 @@ export async function placeTaskingOrder(
     });
   }
 
-  // Create client if not provided
-  const apiClient = client ?? new SkyFiClient();
-
   try {
-    const response = await apiClient.post<TaskingOrderResponse>(
+    const response = await client.post<TaskingOrderResponse>(
       '/order-tasking',
       params,
     );

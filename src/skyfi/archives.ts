@@ -8,20 +8,20 @@
  */
 
 import { z } from 'zod';
-import { logger } from '../lib/logger';
-import { ValidationError, NotFoundError } from '../lib/errors';
-import { SkyFiClient } from './client';
+import { logger } from '../lib/logger.js';
+import { ValidationError, NotFoundError } from '../lib/errors.js';
+import { SkyFiClient } from './client.js';
 import type {
   ArchiveSearchParams,
   ArchiveSearchResponse,
   Archive,
   ArchiveSearchOptions,
-} from '../types/archives';
+} from '../types/archives.js';
 import {
   ArchiveSearchParamsSchema,
   ArchiveSearchResponseSchema,
   ArchiveSchema,
-} from '../schemas/archives.schemas';
+} from '../schemas/archives.schemas.js';
 
 /**
  * Search SkyFi's archive catalog for satellite imagery

@@ -8,8 +8,8 @@
  */
 
 import { z } from 'zod';
-import { ProductType, Resolution, Provider } from '../types/skyfi-api';
-import { FeasibilityCheckStatus } from '../types/feasibility';
+import { ProductType, Resolution, Provider } from '../types/skyfi-api.js';
+import { FeasibilityCheckStatus } from '../types/feasibility.js';
 
 /**
  * Validate WKT polygon format

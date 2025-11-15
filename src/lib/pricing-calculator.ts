@@ -7,8 +7,8 @@
  * @packageDocumentation
  */
 
-import { logger } from './logger';
-import { ValidationError } from './errors';
+import { logger } from './logger.js';
+import { ValidationError } from './errors.js';
 import {
   CostEstimate,
   CostEstimateParams,
@@ -16,9 +16,9 @@ import {
   PricingTier,
   StructuredPricing,
   ProviderPricing,
-} from '@/types/pricing';
-import { ProductType, Resolution, Provider } from '@/types/skyfi-api';
-import { validateCostEstimateParams } from '@/schemas/pricing.schemas';
+} from '../types/pricing.js';
+import { ProductType, Resolution, Provider } from '../types/skyfi-api.js';
+import { validateCostEstimateParams } from '../schemas/pricing.schemas.js';
 
 /**
  * Calculate cost estimate for imagery order

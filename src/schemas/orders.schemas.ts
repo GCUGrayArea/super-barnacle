@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { DeliveryDriver, ProductType, Resolution } from '@/types/orders';
+import { DeliveryDriver, ProductType, Resolution } from '../types/orders.js';
 
 /**
  * WKT (Well-Known Text) polygon validation

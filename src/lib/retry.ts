@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-import { logger } from './logger';
+import { logger } from './logger.js';
 
 /**
  * Options for retry logic

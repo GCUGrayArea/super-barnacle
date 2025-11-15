@@ -8,9 +8,8 @@
  * @packageDocumentation
  */
 
-import { SkyFiClient } from './client';
-import { logger } from '../lib/logger';
-import { ValidationError } from '../lib/errors';
+import { SkyFiClient } from './client.js';
+import { logger } from '../lib/logger.js';
 import {
   PricingRequest,
   PricingResponse,
@@ -18,12 +17,12 @@ import {
   ProductTypePricing,
   ResolutionPricing,
   ProviderPricing,
-} from '../types/pricing';
-import { ProductType, Resolution, Provider } from '../types/skyfi-api';
+} from '../types/pricing.js';
+import { ProductType, Resolution, Provider } from '../types/skyfi-api.js';
 import {
   validatePricingRequest,
   validatePricingResponse,
-} from '../schemas/pricing.schemas';
+} from '../schemas/pricing.schemas.js';
 
 /**
  * Get pricing information from SkyFi API

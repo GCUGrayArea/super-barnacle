@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import type { ProductType, Resolution, Provider } from './skyfi-api';
+import type { ProductType, Resolution, Provider } from './skyfi-api.js';
 
 /**
  * Feasibility check status

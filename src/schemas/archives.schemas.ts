@@ -8,7 +8,7 @@
  */
 
 import { z } from 'zod';
-import { ProductType, Provider, Resolution } from '../types/skyfi-api';
+import { ProductType, Provider, Resolution } from '../types/skyfi-api.js';
 
 /**
  * Maximum area in square kilometers for archive search AOI

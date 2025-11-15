@@ -8,23 +8,23 @@
  * @packageDocumentation
  */
 
-import { SkyFiClient } from './client';
-import { logger } from '../lib/logger';
-import { ValidationError } from '../lib/errors';
+import { SkyFiClient } from './client.js';
+import { logger } from '../lib/logger.js';
+import { ValidationError } from '../lib/errors.js';
 import {
   CreateNotificationParamsSchema,
   CreateNotificationResponseSchema,
   ListNotificationsResponseSchema,
   GetNotificationResponseSchema,
   DeleteNotificationResponseSchema,
-} from '../schemas/notifications.schemas';
+} from '../schemas/notifications.schemas.js';
 import type {
   CreateNotificationParams,
   CreateNotificationResponse,
   ListNotificationsResponse,
   GetNotificationResponse,
   DeleteNotificationResponse,
-} from '../types/notifications';
+} from '../types/notifications.js';
 
 /**
  * Create a new monitoring notification
@@ -70,9 +70,7 @@ export async function createNotification(
   } catch (error) {
     logger.error('Notification parameter validation failed', { error, params });
     throw new ValidationError(
-      `Invalid notification parameters: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      undefined,
-      error
+      `Invalid notification parameters: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 

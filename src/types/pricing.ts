@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-import { ProductType, Resolution, Provider } from './skyfi-api';
+import { ProductType, Resolution, Provider } from './skyfi-api.js';
 
 /**
  * Request payload for pricing API

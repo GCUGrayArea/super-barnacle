@@ -2,6 +2,7 @@
   "name": "skyfi-mcp",
   "version": "1.0.0",
   "description": "SkyFi Model Context Protocol Server - AI-powered satellite imagery ordering through MCP",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {
@@ -39,7 +40,8 @@
     "dotenv": "^16.3.1",
     "openai": "^4.24.1",
     "winston": "^3.11.0",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",

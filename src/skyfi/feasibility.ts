@@ -8,22 +8,22 @@
  */
 
 import { z } from 'zod';
-import { logger } from '../lib/logger';
-import { ValidationError } from '../lib/errors';
-import { SkyFiClient } from './client';
+import { logger } from '../lib/logger.js';
+import { ValidationError } from '../lib/errors.js';
+import { SkyFiClient } from './client.js';
 import type {
   PassPredictionRequest,
   PassPredictionResponse,
   FeasibilityCheckRequest,
   FeasibilityCheckResponse,
   FeasibilityOptions,
-} from '../types/feasibility';
+} from '../types/feasibility.js';
 import {
   validatePassPredictionRequest,
   validateFeasibilityCheckRequest,
   validatePassPredictionResponse,
   validateFeasibilityCheckResponse,
-} from '../schemas/feasibility.schemas';
+} from '../schemas/feasibility.schemas.js';
 
 /**
  * Feasibility service for checking task feasibility and predicting satellite passes
