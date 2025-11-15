@@ -90,26 +90,6 @@ export class RateLimitError extends Error {
 }
 
 /**
- * Error for resource not found (404)
- */
-export class NotFoundError extends Error {
-  /**
-   * Create a not found error
-   *
-   * @param message - Human-readable error message
-   * @param resourceId - Optional ID of the resource that was not found
-   */
-  constructor(
-    message: string,
-    public resourceId?: string,
-  ) {
-    super(message);
-    this.name = 'NotFoundError';
-    Object.setPrototypeOf(this, NotFoundError.prototype);
-  }
-}
-
-/**
  * Error for authorization failures
  */
 export class AuthorizationError extends Error {
