@@ -2,8 +2,25 @@
  * Tests for MCP Server
  */
 
-import { SkyFiMCPServer } from '../../src/mcp/server';
-import { MCPServerConfig } from '../../src/mcp/config';
+// Mock the MCP SDK to avoid ES module import issues in Jest
+jest.mock('@modelcontextprotocol/sdk/server/index.js', () => ({
+  Server: jest.fn().mockImplementation(() => ({
+    connect: jest.fn(),
+    oninitialized: undefined,
+  })),
+}));
+
+jest.mock('@modelcontextprotocol/sdk/server/sse.js', () => ({
+  SSEServerTransport: jest.fn().mockImplementation(() => ({
+    start: jest.fn(),
+    close: jest.fn(),
+    sessionId: 'mock-session-id',
+    handlePostMessage: jest.fn(),
+  })),
+}));
+
+import { SkyFiMCPServer } from '../../src/mcp/server.js';
+import { MCPServerConfig } from '../../src/mcp/config.js';
 import http from 'node:http';
 
 describe('SkyFiMCPServer', () => {
@@ -20,7 +37,11 @@ describe('SkyFiMCPServer', () => {
 
   afterEach(async () => {
     if (server) {
-      await server.stop();
+      try {
+        await server.stop();
+      } catch (error) {
+        // Ignore errors during cleanup
+      }
     }
   });
 
@@ -64,7 +85,11 @@ describe('SkyFiMCPServer', () => {
     it('should stop server gracefully', async () => {
       server = new SkyFiMCPServer(testConfig);
       await server.start();
-      await server.stop();
+
+      // Give server a moment to fully start
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      await expect(server.stop()).resolves.not.toThrow();
 
       // Server should be stopped
       expect(server).toBeDefined();
