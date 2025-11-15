@@ -22,6 +22,7 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('Archive Search Integration Tests', () => {
   let client: SkyFiClient;
+  let mockAxiosInstance: any;
 
   beforeAll(() => {
     // Set up environment for testing
@@ -30,20 +31,24 @@ describe('Archive Search Integration Tests', () => {
   });
 
   beforeEach(() => {
-    const config = createConfigFromEnv();
-    client = new SkyFiClient(config);
-
-    // Mock axios.create to return a mock instance
-    mockedAxios.create = jest.fn(() => ({
+    // Create mock axios instance
+    mockAxiosInstance = {
       get: jest.fn(),
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
+      request: jest.fn(),
       interceptors: {
         request: { use: jest.fn(), eject: jest.fn() },
         response: { use: jest.fn(), eject: jest.fn() },
       },
-    })) as unknown as typeof axios.create;
+    };
+
+    // Mock axios.create to return our mock instance
+    mockedAxios.create = jest.fn(() => mockAxiosInstance) as unknown as typeof axios.create;
+
+    const config = createConfigFromEnv();
+    client = new SkyFiClient(config);
   });
 
   afterEach(() => {
@@ -52,8 +57,7 @@ describe('Archive Search Integration Tests', () => {
 
   describe('searchArchives - API Integration', () => {
     it('should successfully search archives with full API flow', async () => {
-      const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.post as jest.Mock).mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: mockArchiveSearchResponse,
         status: 200,
       });
@@ -72,14 +76,13 @@ describe('Archive Search Integration Tests', () => {
     });
 
     it('should handle 401 authentication errors', async () => {
-      const mockAxiosInstance = mockedAxios.create();
       const authError = new Error('Unauthorized');
       (authError as any).response = {
         status: 401,
         data: { message: 'Invalid API key' },
       };
       (authError as any).isAxiosError = true;
-      (mockAxiosInstance.post as jest.Mock).mockRejectedValue(authError);
+      mockAxiosInstance.post.mockRejectedValue(authError);
 
       await expect(
         searchArchives(client, {
@@ -89,7 +92,6 @@ describe('Archive Search Integration Tests', () => {
     });
 
     it('should handle 429 rate limit errors with retry', async () => {
-      const mockAxiosInstance = mockedAxios.create();
       const rateLimitError = new Error('Rate limited');
       (rateLimitError as any).response = {
         status: 429,
@@ -97,7 +99,7 @@ describe('Archive Search Integration Tests', () => {
         headers: { 'retry-after': '60' },
       };
       (rateLimitError as any).isAxiosError = true;
-      (mockAxiosInstance.post as jest.Mock).mockRejectedValue(rateLimitError);
+      mockAxiosInstance.post.mockRejectedValue(rateLimitError);
 
       await expect(
         searchArchives(client, {
@@ -107,7 +109,6 @@ describe('Archive Search Integration Tests', () => {
     });
 
     it('should handle 422 validation errors', async () => {
-      const mockAxiosInstance = mockedAxios.create();
       const validationError = new Error('Validation failed');
       (validationError as any).response = {
         status: 422,
@@ -117,7 +118,7 @@ describe('Archive Search Integration Tests', () => {
         },
       };
       (validationError as any).isAxiosError = true;
-      (mockAxiosInstance.post as jest.Mock).mockRejectedValue(validationError);
+      mockAxiosInstance.post.mockRejectedValue(validationError);
 
       await expect(
         searchArchives(client, {
@@ -129,8 +130,7 @@ describe('Archive Search Integration Tests', () => {
 
   describe('getArchiveById - API Integration', () => {
     it('should successfully fetch archive by ID', async () => {
-      const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.get as jest.Mock).mockResolvedValue({
+      mockAxiosInstance.get.mockResolvedValue({
         data: mockArchive,
         status: 200,
       });
@@ -142,14 +142,13 @@ describe('Archive Search Integration Tests', () => {
     });
 
     it('should handle 404 not found errors', async () => {
-      const mockAxiosInstance = mockedAxios.create();
       const notFoundError = new Error('Not found');
       (notFoundError as any).response = {
         status: 404,
         data: { message: 'Archive not found' },
       };
       (notFoundError as any).isAxiosError = true;
-      (mockAxiosInstance.get as jest.Mock).mockRejectedValue(notFoundError);
+      mockAxiosInstance.get.mockRejectedValue(notFoundError);
 
       await expect(getArchiveById(client, 'non-existent-id')).rejects.toThrow();
     });
@@ -157,12 +156,11 @@ describe('Archive Search Integration Tests', () => {
 
   describe('getNextArchivesPage - API Integration', () => {
     it('should successfully fetch next page', async () => {
-      const mockAxiosInstance = mockedAxios.create();
       const nextPageResponse = {
         ...mockArchiveSearchResponse,
         nextPage: undefined,
       };
-      (mockAxiosInstance.get as jest.Mock).mockResolvedValue({
+      mockAxiosInstance.get.mockResolvedValue({
         data: nextPageResponse,
         status: 200,
       });
@@ -179,7 +177,6 @@ describe('Archive Search Integration Tests', () => {
 
   describe('Complex Archive Search Scenarios', () => {
     it('should search with multiple product types and resolutions', async () => {
-      const mockAxiosInstance = mockedAxios.create();
       const multiProductResponse = {
         request: {},
         archives: [
@@ -188,7 +185,7 @@ describe('Archive Search Integration Tests', () => {
         ],
         total: 2,
       };
-      (mockAxiosInstance.post as jest.Mock).mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: multiProductResponse,
         status: 200,
       });
@@ -203,8 +200,7 @@ describe('Archive Search Integration Tests', () => {
     });
 
     it('should filter by cloud coverage and off-nadir angle', async () => {
-      const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.post as jest.Mock).mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: mockArchiveSearchResponse,
         status: 200,
       });
@@ -220,12 +216,11 @@ describe('Archive Search Integration Tests', () => {
     });
 
     it('should filter for open data only', async () => {
-      const mockAxiosInstance = mockedAxios.create();
       const openDataResponse = {
         ...mockArchiveSearchResponse,
         archives: [{ ...mockArchive, openData: true }],
       };
-      (mockAxiosInstance.post as jest.Mock).mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: openDataResponse,
         status: 200,
       });

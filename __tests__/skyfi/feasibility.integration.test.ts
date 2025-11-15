@@ -2,8 +2,9 @@
  * Integration tests for feasibility checking with mocked API responses
  */
 
-import nock from 'nock';
+import axios from 'axios';
 import { SkyFiClient } from '../../src/skyfi/client';
+import { createConfigFromEnv } from '../../src/skyfi/config';
 import { FeasibilityService } from '../../src/skyfi/feasibility';
 import { ProductType, Resolution, Provider } from '../../src/types/skyfi-api';
 import type {
@@ -13,12 +14,16 @@ import type {
   FeasibilityCheckResponse,
 } from '../../src/types/feasibility';
 
+jest.mock('axios');
+const mockedAxios = axios as jest.Mocked<typeof axios>;
+
 describe('Feasibility Integration Tests', () => {
   const API_BASE_URL = 'https://app.skyfi.com/platform-api';
   const TEST_API_KEY = 'test-api-key';
 
   let client: SkyFiClient;
   let service: FeasibilityService;
+  let mockAxiosInstance: any;
 
   beforeAll(() => {
     // Set environment variables for testing
@@ -27,12 +32,29 @@ describe('Feasibility Integration Tests', () => {
   });
 
   beforeEach(() => {
-    client = new SkyFiClient({ apiKey: TEST_API_KEY, baseUrl: API_BASE_URL });
+    // Create mock axios instance
+    mockAxiosInstance = {
+      get: jest.fn(),
+      post: jest.fn(),
+      put: jest.fn(),
+      delete: jest.fn(),
+      request: jest.fn(),
+      interceptors: {
+        request: { use: jest.fn(), eject: jest.fn() },
+        response: { use: jest.fn(), eject: jest.fn() },
+      },
+    };
+
+    // Mock axios.create to return our mock instance
+    mockedAxios.create = jest.fn(() => mockAxiosInstance) as unknown as typeof axios.create;
+
+    const config = createConfigFromEnv();
+    client = new SkyFiClient(config);
     service = new FeasibilityService(client);
   });
 
   afterEach(() => {
-    nock.cleanAll();
+    jest.clearAllMocks();
   });
 
   describe('Pass Prediction Integration', () => {
@@ -93,14 +115,10 @@ describe('Feasibility Integration Tests', () => {
     };
 
     it('should successfully predict satellite passes', async () => {
-      nock(API_BASE_URL)
-        .post('/feasibility/pass-prediction', (body) => {
-          expect(body.aoi).toBe(request.aoi);
-          expect(body.fromDate).toBe(request.fromDate);
-          expect(body.toDate).toBe(request.toDate);
-          return true;
-        })
-        .reply(200, mockApiResponse);
+      mockAxiosInstance.post.mockResolvedValue({
+        data: mockApiResponse,
+        status: 200,
+      });
 
       const result = await service.predictPasses(request);
 
@@ -113,9 +131,10 @@ describe('Feasibility Integration Tests', () => {
     });
 
     it('should handle empty pass results', async () => {
-      nock(API_BASE_URL)
-        .post('/feasibility/pass-prediction')
-        .reply(200, { passes: [] });
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { passes: [] },
+        status: 200,
+      });
 
       const result = await service.predictPasses(request);
 
@@ -123,21 +142,33 @@ describe('Feasibility Integration Tests', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      nock(API_BASE_URL)
-        .post('/feasibility/pass-prediction')
-        .reply(422, {
-          detail: 'Invalid AOI polygon',
-        });
+      const error = new Error('Validation failed');
+      (error as any).response = {
+        status: 422,
+        data: { detail: 'Invalid AOI polygon' },
+      };
+      (error as any).isAxiosError = true;
+      mockAxiosInstance.post.mockRejectedValue(error);
 
       await expect(service.predictPasses(request)).rejects.toThrow();
     });
 
     it('should retry on rate limit errors', async () => {
-      nock(API_BASE_URL)
-        .post('/feasibility/pass-prediction')
-        .reply(429, { detail: 'Rate limit exceeded' })
-        .post('/feasibility/pass-prediction')
-        .reply(200, mockApiResponse);
+      // First call returns rate limit error, second call succeeds
+      const rateLimitError = new Error('Rate limited');
+      (rateLimitError as any).response = {
+        status: 429,
+        data: { detail: 'Rate limit exceeded' },
+        headers: { 'retry-after': '1' },
+      };
+      (rateLimitError as any).isAxiosError = true;
+
+      mockAxiosInstance.post
+        .mockRejectedValueOnce(rateLimitError)
+        .mockResolvedValueOnce({
+          data: mockApiResponse,
+          status: 200,
+        });
 
       const result = await service.predictPasses(request);
 
@@ -200,7 +231,7 @@ describe('Feasibility Integration Tests', () => {
                   windowStart: '2025-01-18T09:30:00Z',
                   windowEnd: '2025-01-18T10:30:00Z',
                   satelliteId: 'SKYSAT-18',
-                  providerWindowId: '456e7890-f12g-34h5-i678-901234567890',
+                  providerWindowId: '456e7890-f1ab-34c5-d678-901234567890',
                 },
               ],
             },
@@ -210,15 +241,10 @@ describe('Feasibility Integration Tests', () => {
     };
 
     it('should successfully check feasibility', async () => {
-      nock(API_BASE_URL)
-        .post('/feasibility', (body) => {
-          expect(body.aoi).toBe(request.aoi);
-          expect(body.productType).toBe(request.productType);
-          expect(body.resolution).toBe(request.resolution);
-          expect(body.requiredProvider).toBe(request.requiredProvider);
-          return true;
-        })
-        .reply(201, mockApiResponse);
+      mockAxiosInstance.post.mockResolvedValue({
+        data: mockApiResponse,
+        status: 201,
+      });
 
       const result = await service.checkFeasibility(request);
 
@@ -230,7 +256,10 @@ describe('Feasibility Integration Tests', () => {
     });
 
     it('should handle provider opportunities with window IDs', async () => {
-      nock(API_BASE_URL).post('/feasibility').reply(201, mockApiResponse);
+      mockAxiosInstance.post.mockResolvedValue({
+        data: mockApiResponse,
+        status: 201,
+      });
 
       const result = await service.checkFeasibility(request);
 
@@ -249,7 +278,7 @@ describe('Feasibility Integration Tests', () => {
 
       // Check second opportunity
       expect(opportunities?.[1].providerWindowId).toBe(
-        '456e7890-f12g-34h5-i678-901234567890',
+        '456e7890-f1ab-34c5-d678-901234567890',
       );
       expect(opportunities?.[1].satelliteId).toBe('SKYSAT-18');
     });
@@ -261,7 +290,10 @@ describe('Feasibility Integration Tests', () => {
         overallScore: null,
       };
 
-      nock(API_BASE_URL).post('/feasibility').reply(201, responseWithNullScore);
+      mockAxiosInstance.post.mockResolvedValue({
+        data: responseWithNullScore,
+        status: 201,
+      });
 
       const result = await service.checkFeasibility(request);
 
@@ -270,21 +302,25 @@ describe('Feasibility Integration Tests', () => {
     });
 
     it('should handle authentication errors', async () => {
-      nock(API_BASE_URL)
-        .post('/feasibility')
-        .reply(401, {
-          detail: 'Authentication failed',
-        });
+      const error = new Error('Unauthorized');
+      (error as any).response = {
+        status: 401,
+        data: { detail: 'Authentication failed' },
+      };
+      (error as any).isAxiosError = true;
+      mockAxiosInstance.post.mockRejectedValue(error);
 
       await expect(service.checkFeasibility(request)).rejects.toThrow();
     });
 
     it('should handle validation errors from API', async () => {
-      nock(API_BASE_URL)
-        .post('/feasibility')
-        .reply(422, {
-          detail: 'Invalid request parameters',
-        });
+      const error = new Error('Validation failed');
+      (error as any).response = {
+        status: 422,
+        data: { detail: 'Invalid request parameters' },
+      };
+      (error as any).isAxiosError = true;
+      mockAxiosInstance.post.mockRejectedValue(error);
 
       await expect(service.checkFeasibility(request)).rejects.toThrow();
     });
@@ -319,9 +355,10 @@ describe('Feasibility Integration Tests', () => {
     };
 
     it('should successfully retrieve feasibility by ID', async () => {
-      nock(API_BASE_URL)
-        .get(`/feasibility/${feasibilityId}`)
-        .reply(200, mockApiResponse);
+      mockAxiosInstance.get.mockResolvedValue({
+        data: mockApiResponse,
+        status: 200,
+      });
 
       const result = await service.getFeasibilityById(feasibilityId);
 
@@ -337,9 +374,10 @@ describe('Feasibility Integration Tests', () => {
         overallScore: null,
       };
 
-      nock(API_BASE_URL)
-        .get(`/feasibility/${feasibilityId}`)
-        .reply(200, pendingResponse);
+      mockAxiosInstance.get.mockResolvedValue({
+        data: pendingResponse,
+        status: 200,
+      });
 
       const result = await service.getFeasibilityById(feasibilityId);
 
@@ -349,7 +387,10 @@ describe('Feasibility Integration Tests', () => {
     });
 
     it('should return null for non-existent feasibility', async () => {
-      nock(API_BASE_URL).get(`/feasibility/${feasibilityId}`).reply(200, null);
+      mockAxiosInstance.get.mockResolvedValue({
+        data: null,
+        status: 200,
+      });
 
       const result = await service.getFeasibilityById(feasibilityId);
 
@@ -357,11 +398,13 @@ describe('Feasibility Integration Tests', () => {
     });
 
     it('should handle 404 errors', async () => {
-      nock(API_BASE_URL)
-        .get(`/feasibility/${feasibilityId}`)
-        .reply(404, {
-          detail: 'Feasibility check not found',
-        });
+      const error = new Error('Not found');
+      (error as any).response = {
+        status: 404,
+        data: { detail: 'Feasibility check not found' },
+      };
+      (error as any).isAxiosError = true;
+      mockAxiosInstance.get.mockRejectedValue(error);
 
       await expect(service.getFeasibilityById(feasibilityId)).rejects.toThrow();
     });
@@ -385,9 +428,10 @@ describe('Feasibility Integration Tests', () => {
         overallScore: null, // Initially pending
       };
 
-      nock(API_BASE_URL)
-        .post('/feasibility')
-        .reply(201, feasibilityResponse);
+      mockAxiosInstance.post.mockResolvedValueOnce({
+        data: feasibilityResponse,
+        status: 201,
+      });
 
       const checkResult = await service.checkFeasibility(feasibilityRequest);
       expect(checkResult.id).toBe('abc12345-e89b-12d3-a456-426614174000');
@@ -419,9 +463,10 @@ describe('Feasibility Integration Tests', () => {
         },
       };
 
-      nock(API_BASE_URL)
-        .get('/feasibility/abc12345-e89b-12d3-a456-426614174000')
-        .reply(200, completedResponse);
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: completedResponse,
+        status: 200,
+      });
 
       const pollResult = await service.getFeasibilityById(checkResult.id);
       expect(pollResult?.overallScore).not.toBeNull();

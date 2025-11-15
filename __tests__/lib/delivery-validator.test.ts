@@ -70,10 +70,7 @@ describe('validateDeliveryConfiguration', () => {
           type: 'service_account',
           project_id: 'my-gcp-project',
           private_key_id: 'abc123',
-          private_key: '-----BEGIN PRIVATE KEY-----
-test
------END PRIVATE KEY-----
-',
+          private_key: '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----\n',
           client_email: 'test-sa@my-gcp-project.iam.gserviceaccount.com',
           client_id: '123456789',
           auth_uri: 'https://accounts.google.com/o/oauth2/auth',
@@ -96,10 +93,7 @@ test
           type: 'service_account',
           project_id: 'project-b',
           private_key_id: 'abc123',
-          private_key: '-----BEGIN PRIVATE KEY-----
-test
------END PRIVATE KEY-----
-',
+          private_key: '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----\n',
           client_email: 'test-sa@project-b.iam.gserviceaccount.com',
           client_id: '123456789',
           auth_uri: 'https://accounts.google.com/o/oauth2/auth',
@@ -122,10 +116,7 @@ test
           type: 'service_account',
           project_id: 'my-gcp-project',
           private_key_id: 'abc123',
-          private_key: '-----BEGIN PRIVATE KEY-----
-test
------END PRIVATE KEY-----
-',
+          private_key: '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----\n',
           client_email: 'invalid-email@gmail.com',
           client_id: '123456789',
           auth_uri: 'https://accounts.google.com/o/oauth2/auth',

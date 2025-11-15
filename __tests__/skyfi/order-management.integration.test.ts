@@ -7,6 +7,7 @@
 import axios from 'axios';
 import { OrderManagement, createOrderManagement } from '../../src/skyfi/order-management';
 import { SkyFiClient } from '../../src/skyfi/client';
+import { createConfigFromEnv } from '../../src/skyfi/config';
 import { OrderType, DeliveryStatus } from '../../src/types/order-status';
 import { DeliveryDriver } from '../../src/types/skyfi-api';
 
@@ -32,7 +33,7 @@ jest.mock('../../src/lib/logger', () => ({
 
 describe('OrderManagement Integration Tests', () => {
   let orderManagement: OrderManagement;
-  let axiosInstance: any;
+  let mockAxiosInstance: any;
 
   beforeAll(() => {
     // Set up environment variable for API key
@@ -40,27 +41,25 @@ describe('OrderManagement Integration Tests', () => {
   });
 
   beforeEach(() => {
-    // Create a mock axios instance
-    axiosInstance = {
+    // Create mock axios instance
+    mockAxiosInstance = {
       get: jest.fn(),
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
       request: jest.fn(),
       interceptors: {
-        request: {
-          use: jest.fn(),
-        },
-        response: {
-          use: jest.fn(),
-        },
+        request: { use: jest.fn(), eject: jest.fn() },
+        response: { use: jest.fn(), eject: jest.fn() },
       },
     };
 
-    mockedAxios.create.mockReturnValue(axiosInstance as any);
+    // Mock axios.create to return our mock instance
+    mockedAxios.create = jest.fn(() => mockAxiosInstance) as unknown as typeof axios.create;
 
     // Create client and order management instance
-    const client = new SkyFiClient();
+    const config = createConfigFromEnv();
+    const client = new SkyFiClient(config);
     orderManagement = createOrderManagement(client);
   });
 
@@ -131,7 +130,7 @@ describe('OrderManagement Integration Tests', () => {
         },
       };
 
-      axiosInstance.request.mockResolvedValue(mockResponse);
+      mockAxiosInstance.get.mockResolvedValue(mockResponse);
 
       const result = await orderManagement.listOrders();
 
@@ -182,7 +181,7 @@ describe('OrderManagement Integration Tests', () => {
         },
       };
 
-      axiosInstance.request.mockResolvedValue(mockResponse);
+      mockAxiosInstance.get.mockResolvedValue(mockResponse);
 
       const result = await orderManagement.listOrdersByType(OrderType.TASKING);
 
@@ -262,7 +261,7 @@ describe('OrderManagement Integration Tests', () => {
         },
       };
 
-      axiosInstance.request.mockResolvedValue(mockResponse);
+      mockAxiosInstance.get.mockResolvedValue(mockResponse);
 
       const result = await orderManagement.getOrderById('550e8400-e29b-41d4-a716-446655440000');
 
@@ -321,7 +320,7 @@ describe('OrderManagement Integration Tests', () => {
         },
       };
 
-      axiosInstance.request.mockResolvedValue(mockResponse);
+      mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
       const result = await orderManagement.triggerRedelivery(orderId, redeliveryParams);
 
@@ -378,7 +377,7 @@ describe('OrderManagement Integration Tests', () => {
         },
       };
 
-      axiosInstance.request.mockResolvedValue(mockResponse);
+      mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
       const result = await orderManagement.triggerRedelivery(orderId, redeliveryParams);
 
@@ -389,16 +388,13 @@ describe('OrderManagement Integration Tests', () => {
 
   describe('Error scenarios', () => {
     it('should handle 404 Not Found errors', async () => {
-      const error = {
-        response: {
-          status: 404,
-          data: { detail: 'Order not found' },
-        },
-        config: { url: '/orders/nonexistent-id' },
-        isAxiosError: true,
+      const error = new Error('Not found');
+      (error as any).response = {
+        status: 404,
+        data: { detail: 'Order not found' },
       };
-
-      axiosInstance.request.mockRejectedValue(error);
+      (error as any).isAxiosError = true;
+      mockAxiosInstance.get.mockRejectedValue(error);
 
       await expect(
         orderManagement.getOrderById('550e8400-e29b-41d4-a716-446655440000'),
@@ -406,16 +402,13 @@ describe('OrderManagement Integration Tests', () => {
     });
 
     it('should handle 401 Unauthorized errors', async () => {
-      const error = {
-        response: {
-          status: 401,
-          data: { detail: 'Invalid API key' },
-        },
-        config: { url: '/orders' },
-        isAxiosError: true,
+      const error = new Error('Unauthorized');
+      (error as any).response = {
+        status: 401,
+        data: { detail: 'Invalid API key' },
       };
-
-      axiosInstance.request.mockRejectedValue(error);
+      (error as any).isAxiosError = true;
+      mockAxiosInstance.get.mockRejectedValue(error);
 
       await expect(orderManagement.listOrders()).rejects.toThrow();
     });

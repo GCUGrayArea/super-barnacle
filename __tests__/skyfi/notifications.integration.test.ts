@@ -37,28 +37,31 @@ jest.mock('../../src/lib/logger', () => ({
 
 describe('Notifications Integration Tests', () => {
   let client: SkyFiClient;
+  let mockAxiosInstance: any;
 
   beforeAll(() => {
-    // Setup axios mock
-    mockedAxios.create = jest.fn(() => ({
+    // Set environment variable for API key
+    process.env['SKYFI_API_KEY'] = 'test-api-key';
+  });
+
+  beforeEach(() => {
+    // Create mock axios instance
+    mockAxiosInstance = {
       get: jest.fn(),
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
+      request: jest.fn(),
       interceptors: {
-        request: {
-          use: jest.fn(),
-        },
-        response: {
-          use: jest.fn(),
-        },
+        request: { use: jest.fn(), eject: jest.fn() },
+        response: { use: jest.fn(), eject: jest.fn() },
       },
-    })) as any;
-  });
+    };
 
-  beforeEach(() => {
+    // Mock axios.create to return our mock instance
+    mockedAxios.create = jest.fn(() => mockAxiosInstance) as unknown as typeof axios.create;
+
     // Create a real SkyFiClient instance with mocked axios
-    process.env['SKYFI_API_KEY'] = 'test-api-key';
     client = new SkyFiClient({
       apiKey: 'test-api-key',
       baseUrl: 'https://app.skyfi.com/platform-api',
@@ -107,7 +110,7 @@ describe('Notifications Integration Tests', () => {
       };
 
       // Mock the axios post call
-      (client as any).client.post = jest.fn().mockResolvedValueOnce(mockApiResponse);
+      mockAxiosInstance.post.mockResolvedValueOnce(mockApiResponse);
 
       const result = await createNotification(client, params);
 
@@ -143,7 +146,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.post = jest.fn().mockResolvedValueOnce(mockApiResponse);
+      mockAxiosInstance.post.mockResolvedValueOnce(mockApiResponse);
 
       const result = await createNotification(client, params);
 
@@ -167,7 +170,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.post = jest.fn().mockRejectedValueOnce(error);
+      mockAxiosInstance.post.mockRejectedValueOnce(error);
 
       await expect(createNotification(client, params)).rejects.toThrow();
     });
@@ -205,7 +208,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.get = jest.fn().mockResolvedValueOnce(mockApiResponse);
+      mockAxiosInstance.get.mockResolvedValueOnce(mockApiResponse);
 
       const result = await listNotifications(client);
 
@@ -236,7 +239,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.get = jest.fn().mockResolvedValueOnce(mockApiResponse);
+      mockAxiosInstance.get.mockResolvedValueOnce(mockApiResponse);
 
       const result = await listNotifications(client, { page: 2, pageSize: 5 });
 
@@ -254,7 +257,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.get = jest.fn().mockResolvedValueOnce(mockApiResponse);
+      mockAxiosInstance.get.mockResolvedValueOnce(mockApiResponse);
 
       const result = await listNotifications(client);
 
@@ -288,7 +291,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.get = jest.fn().mockResolvedValueOnce(mockApiResponse);
+      mockAxiosInstance.get.mockResolvedValueOnce(mockApiResponse);
 
       const result = await getNotificationById(client, notificationId);
 
@@ -309,7 +312,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.get = jest.fn().mockRejectedValueOnce(error);
+      mockAxiosInstance.get.mockRejectedValueOnce(error);
 
       await expect(getNotificationById(client, notificationId)).rejects.toThrow();
     });
@@ -327,7 +330,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.delete = jest.fn().mockResolvedValueOnce(mockApiResponse);
+      mockAxiosInstance.delete.mockResolvedValueOnce(mockApiResponse);
 
       const result = await deleteNotification(client, notificationId);
 
@@ -348,7 +351,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.delete = jest.fn().mockRejectedValueOnce(error);
+      mockAxiosInstance.delete.mockRejectedValueOnce(error);
 
       await expect(deleteNotification(client, notificationId)).rejects.toThrow();
     });
@@ -386,7 +389,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.post = jest.fn().mockResolvedValueOnce(createResponse);
+      mockAxiosInstance.post.mockResolvedValueOnce(createResponse);
       const created = await createNotification(client, createParams);
       expect(created.notification.id).toBe(createdNotificationId);
 
@@ -398,7 +401,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.get = jest.fn().mockResolvedValueOnce(listResponse);
+      mockAxiosInstance.get.mockResolvedValueOnce(listResponse);
       const listed = await listNotifications(client);
       expect(listed.notifications).toHaveLength(1);
       expect(listed.notifications[0]?.id).toBe(createdNotificationId);
@@ -413,7 +416,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.get = jest.fn().mockResolvedValueOnce(getResponse);
+      mockAxiosInstance.get.mockResolvedValueOnce(getResponse);
       const retrieved = await getNotificationById(client, createdNotificationId);
       expect(retrieved.notification.id).toBe(createdNotificationId);
       expect(retrieved.notification.triggerCount).toBe(3);
@@ -427,7 +430,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.delete = jest.fn().mockResolvedValueOnce(deleteResponse);
+      mockAxiosInstance.delete.mockResolvedValueOnce(deleteResponse);
       const deleted = await deleteNotification(client, createdNotificationId);
       expect(deleted.success).toBe(true);
       expect(deleted.deletedId).toBe(createdNotificationId);
@@ -450,7 +453,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.post = jest.fn().mockRejectedValueOnce(error);
+      mockAxiosInstance.post.mockRejectedValueOnce(error);
 
       await expect(createNotification(client, params)).rejects.toThrow();
     });
@@ -465,7 +468,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.get = jest.fn().mockRejectedValueOnce(error);
+      mockAxiosInstance.get.mockRejectedValueOnce(error);
 
       await expect(listNotifications(client)).rejects.toThrow();
     });
@@ -485,7 +488,7 @@ describe('Notifications Integration Tests', () => {
         },
       };
 
-      (client as any).client.post = jest.fn().mockRejectedValueOnce(error);
+      mockAxiosInstance.post.mockRejectedValueOnce(error);
 
       await expect(createNotification(client, params)).rejects.toThrow();
     });
