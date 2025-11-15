@@ -1,0 +1,90 @@
+version: '3.9'
+
+services:
+  # PostgreSQL database for caching layer (production configuration)
+  postgres:
+    image: postgres:16-alpine
+    container_name: skyfi-mcp-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_DB: skyfi_mcp
+      POSTGRES_USER: skyfi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skyfi -d skyfi_mcp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skyfi-network
+    # Don't expose postgres port in production
+    # Only accessible within Docker network
+
+  # SkyFi MCP Server (production configuration)
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: skyfi-mcp-server-prod
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Server configuration
+      NODE_ENV: production
+      PORT: 3000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+      # SkyFi API credentials
+      SKYFI_API_KEY: ${SKYFI_API_KEY}
+      SKYFI_API_BASE_URL: ${SKYFI_API_BASE_URL:-https://api.skyfi.com/v1}
+
+      # OpenAI API credentials (for demo agent)
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+
+      # Database configuration
+      DATABASE_URL: postgresql://skyfi:${POSTGRES_PASSWORD}@postgres:5432/skyfi_mcp
+      ENABLE_CACHE: ${ENABLE_CACHE:-true}
+      CACHE_TTL_HOURS: ${CACHE_TTL_HOURS:-24}
+
+      # Rate limiting
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+
+      # Security
+      DISABLE_X_POWERED_BY: true
+    ports:
+      - "3000:3000"
+    volumes:
+      # Only mount logs in production, no source code
+      - ./logs:/app/logs
+    networks:
+      - skyfi-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    # Resource limits (adjust based on your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+volumes:
+  postgres_prod_data:
+    driver: local
+
+networks:
+  skyfi-network:
+    driver: bridge
