@@ -11,7 +11,7 @@ import {
   checkFeasibility,
   getFeasibilityById,
 } from '../../src/skyfi/feasibility';
-import { ProductType, Resolution, ApiProvider } from '../../src/types/skyfi-base';
+import { ProductType, Resolution, Provider } from '../../src/types/skyfi-api';
 import type {
   PassPredictionRequest,
   PassPredictionResponse,
@@ -51,7 +51,7 @@ describe('FeasibilityService', () => {
     const mockResponse: PassPredictionResponse = {
       passes: [
         {
-          provider: ApiProvider.Planet,
+          provider: Provider.Planet,
           satname: 'SKYSAT-1',
           satid: 'SKYSAT-1',
           noradid: '12345',

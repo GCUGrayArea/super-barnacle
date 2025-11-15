@@ -5,7 +5,7 @@
 import nock from 'nock';
 import { SkyFiClient } from '../../src/skyfi/client';
 import { FeasibilityService } from '../../src/skyfi/feasibility';
-import { ProductType, Resolution, ApiProvider } from '../../src/types/skyfi-base';
+import { ProductType, Resolution, Provider } from '../../src/types/skyfi-api';
 import type {
   PassPredictionRequest,
   PassPredictionResponse,
@@ -105,10 +105,10 @@ describe('Feasibility Integration Tests', () => {
       const result = await service.predictPasses(request);
 
       expect(result.passes).toHaveLength(2);
-      expect(result.passes[0].provider).toBe(ApiProvider.Planet);
+      expect(result.passes[0].provider).toBe(Provider.Planet);
       expect(result.passes[0].satname).toBe('SKYSAT-15');
       expect(result.passes[0].productType).toBe(ProductType.Day);
-      expect(result.passes[1].provider).toBe(ApiProvider.Umbra);
+      expect(result.passes[1].provider).toBe(Provider.Umbra);
       expect(result.passes[1].productType).toBe(ProductType.SAR);
     });
 
