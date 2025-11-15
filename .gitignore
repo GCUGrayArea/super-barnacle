@@ -90,8 +90,7 @@ credentials.json
 # ============================================
 # Docker
 # ============================================
-.dockerignore
-# Don't ignore Dockerfile - we need that
+# Don't ignore Dockerfile or .dockerignore - we need both
 
 # ============================================
 # Database

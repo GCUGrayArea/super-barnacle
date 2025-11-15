@@ -1,0 +1,101 @@
+version: '3.9'
+
+services:
+  # PostgreSQL database for caching layer (P1 feature)
+  postgres:
+    image: postgres:16-alpine
+    container_name: skyfi-mcp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: skyfi_mcp
+      POSTGRES_USER: skyfi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-skyfi_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skyfi -d skyfi_mcp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - skyfi-network
+
+  # SkyFi MCP Server
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: skyfi-mcp-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Server configuration
+      NODE_ENV: development
+      PORT: ${PORT:-3000}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+
+      # SkyFi API credentials
+      SKYFI_API_KEY: ${SKYFI_API_KEY}
+      SKYFI_API_BASE_URL: ${SKYFI_API_BASE_URL:-https://api.skyfi.com/v1}
+
+      # OpenAI API credentials (for demo agent)
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+
+      # Database configuration
+      DATABASE_URL: postgresql://skyfi:${POSTGRES_PASSWORD:-skyfi_dev_password}@postgres:5432/skyfi_mcp
+      ENABLE_CACHE: ${ENABLE_CACHE:-true}
+      CACHE_TTL_HOURS: ${CACHE_TTL_HOURS:-24}
+
+      # Rate limiting
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source code for development (hot reload)
+      - ./src:/app/src:ro
+      - ./dist:/app/dist
+      # Mount logs
+      - ./logs:/app/logs
+    networks:
+      - skyfi-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+  # pgAdmin for database management (optional, for development)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: skyfi-mcp-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@skyfi.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - skyfi-network
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  skyfi-network:
+    driver: bridge
