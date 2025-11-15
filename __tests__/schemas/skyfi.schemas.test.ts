@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
+
 import {
   // Enum schemas
   ProductTypeSchema,
@@ -127,8 +128,7 @@ describe('Base Type Schemas', () => {
         CloudCoverageSchema.parse({
           percentage: 25.5,
           source: 'satellite',
-        }),
-      ).not.toThrow();
+        })).not.toThrow();
     });
 
     it('should accept null values', () => {
@@ -136,22 +136,19 @@ describe('Base Type Schemas', () => {
         CloudCoverageSchema.parse({
           percentage: null,
           source: null,
-        }),
-      ).not.toThrow();
+        })).not.toThrow();
     });
 
     it('should reject invalid percentage ranges', () => {
       expect(() =>
         CloudCoverageSchema.parse({
           percentage: -10,
-        }),
-      ).toThrow();
+        })).toThrow();
 
       expect(() =>
         CloudCoverageSchema.parse({
           percentage: 150,
-        }),
-      ).toThrow();
+        })).toThrow();
     });
   });
 

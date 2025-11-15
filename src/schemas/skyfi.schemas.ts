@@ -136,7 +136,8 @@ export const NotificationEventSchema = z.enum(['NEW_IMAGERY']);
  * Cloud coverage schema
  */
 export const CloudCoverageSchema = z.object({
-  percentage: z.number().min(0).max(100).nullable().optional(),
+  percentage: z.number().min(0).max(100).nullable()
+    .optional(),
   source: z.string().nullable().optional(),
 });
 
@@ -217,8 +218,10 @@ export const ArchiveSchema = z.object({
   provider: ApiProviderSchema,
   productType: ProductTypeSchema,
   resolution: z.string(),
-  cloudCoveragePercent: z.number().min(0).max(100).nullable().optional(),
-  offNadirAngle: z.number().min(0).max(90).nullable().optional(),
+  cloudCoveragePercent: z.number().min(0).max(100).nullable()
+    .optional(),
+  offNadirAngle: z.number().min(0).max(90).nullable()
+    .optional(),
   captureDate: z.string().datetime(),
   catalogId: z.string(),
   previewUrl: z.string().url().nullable().optional(),
@@ -257,21 +260,26 @@ export const GetArchivesRequestBaseSchema = z.object({
   aoi: z.string().min(1, 'AOI must be a valid WKT polygon'),
   fromDate: z.string().datetime().nullable().optional(),
   toDate: z.string().datetime().nullable().optional(),
-  maxCloudCoveragePercent: z.number().min(0).max(100).nullable().optional(),
-  maxOffNadirAngle: z.number().min(0).max(50).nullable().optional(),
+  maxCloudCoveragePercent: z.number().min(0).max(100).nullable()
+    .optional(),
+  maxOffNadirAngle: z.number().min(0).max(50).nullable()
+    .optional(),
   resolutions: z.array(ResolutionSchema).nullable().optional(),
   productTypes: z.array(ProductTypeSchema).nullable().optional(),
   providers: z.array(ApiProviderSchema).nullable().optional(),
   openData: z.boolean().nullable().optional(),
-  minOverlapRatio: z.number().min(0).max(1).nullable().optional(),
+  minOverlapRatio: z.number().min(0).max(1).nullable()
+    .optional(),
 });
 
 /**
  * Archive search request schema with pagination
  */
 export const GetArchivesRequestSchema = GetArchivesRequestBaseSchema.extend({
-  pageNumber: z.number().int().min(0).nullable().optional(),
-  pageSize: z.number().int().min(1).max(1000).optional(),
+  pageNumber: z.number().int().min(0).nullable()
+    .optional(),
+  pageSize: z.number().int().min(1).max(1000)
+    .optional(),
 });
 
 /**
@@ -285,7 +293,8 @@ export const ArchiveOrderRequestSchema = z.object({
   label: z.string().optional(),
   orderLabel: z.string().optional(),
   metadata: z.record(z.unknown()).nullable().optional(),
-  webhookUrl: z.string().url().max(2083).nullable().optional(),
+  webhookUrl: z.string().url().max(2083).nullable()
+    .optional(),
 });
 
 /**
@@ -302,17 +311,26 @@ export const TaskingOrderRequestSchema = z.object({
   label: z.string().optional(),
   orderLabel: z.string().optional(),
   metadata: z.record(z.unknown()).nullable().optional(),
-  webhookUrl: z.string().url().max(2083).nullable().optional(),
+  webhookUrl: z.string().url().max(2083).nullable()
+    .optional(),
   priorityItem: z.boolean().nullable().optional(),
-  maxCloudCoveragePercent: z.number().int().min(0).max(100).nullable().optional(),
-  maxOffNadirAngle: z.number().int().min(0).max(45).nullable().optional(),
+  maxCloudCoveragePercent: z.number().int().min(0).max(100)
+    .nullable()
+    .optional(),
+  maxOffNadirAngle: z.number().int().min(0).max(45)
+    .nullable()
+    .optional(),
   requiredProvider: ApiProviderSchema.nullable().optional(),
   sarProductTypes: z.array(SarProductTypeSchema).nullable().optional(),
   sarPolarisation: SarPolarisationSchema.nullable().optional(),
-  sarGrazingAngleMin: z.number().min(10).max(80).nullable().optional(),
-  sarGrazingAngleMax: z.number().min(10).max(80).nullable().optional(),
-  sarAzimuthAngleMin: z.number().min(0).max(360).nullable().optional(),
-  sarAzimuthAngleMax: z.number().min(0).max(360).nullable().optional(),
+  sarGrazingAngleMin: z.number().min(10).max(80).nullable()
+    .optional(),
+  sarGrazingAngleMax: z.number().min(10).max(80).nullable()
+    .optional(),
+  sarAzimuthAngleMin: z.number().min(0).max(360).nullable()
+    .optional(),
+  sarAzimuthAngleMax: z.number().min(0).max(360).nullable()
+    .optional(),
   sarNumberOfLooks: z.number().int().nullable().optional(),
   providerWindowId: z.string().uuid().nullable().optional(),
 });
@@ -333,10 +351,14 @@ export const PlatformApiFeasibilityTaskRequestSchema = z.object({
     .object({
       productTypes: z.array(SarProductTypeSchema).nullable().optional(),
       polarisation: SarPolarisationSchema.nullable().optional(),
-      grazingAngleMin: z.number().min(10).max(80).nullable().optional(),
-      grazingAngleMax: z.number().min(10).max(80).nullable().optional(),
-      azimuthAngleMin: z.number().min(0).max(360).nullable().optional(),
-      azimuthAngleMax: z.number().min(0).max(360).nullable().optional(),
+      grazingAngleMin: z.number().min(10).max(80).nullable()
+        .optional(),
+      grazingAngleMax: z.number().min(10).max(80).nullable()
+        .optional(),
+      azimuthAngleMin: z.number().min(0).max(360).nullable()
+        .optional(),
+      azimuthAngleMax: z.number().min(0).max(360).nullable()
+        .optional(),
       numberOfLooks: z.number().int().nullable().optional(),
     })
     .optional(),
@@ -370,7 +392,8 @@ export const CreateNotificationRequestSchema = z.object({
  */
 export const ListNotificationsRequestSchema = z.object({
   pageNumber: z.number().int().min(0).optional(),
-  pageSize: z.number().int().min(1).max(1000).optional(),
+  pageSize: z.number().int().min(1).max(1000)
+    .optional(),
 });
 
 /**
@@ -379,7 +402,8 @@ export const ListNotificationsRequestSchema = z.object({
 export const ListOrdersRequestSchema = z.object({
   orderType: OrderTypeSchema.nullable().optional(),
   pageNumber: z.number().int().min(0).optional(),
-  pageSize: z.number().int().min(1).max(1000).optional(),
+  pageSize: z.number().int().min(1).max(1000)
+    .optional(),
 });
 
 /**
@@ -463,15 +487,23 @@ export const TaskingOrderResponseSchema = BaseOrderResponseSchema.extend({
   productType: ProductTypeSchema,
   resolution: z.string(),
   priorityItem: z.boolean().nullable().optional(),
-  maxCloudCoveragePercent: z.number().int().min(0).max(100).nullable().optional(),
-  maxOffNadirAngle: z.number().int().min(0).max(45).nullable().optional(),
+  maxCloudCoveragePercent: z.number().int().min(0).max(100)
+    .nullable()
+    .optional(),
+  maxOffNadirAngle: z.number().int().min(0).max(45)
+    .nullable()
+    .optional(),
   requiredProvider: ApiProviderSchema.nullable().optional(),
   sarProductTypes: z.array(SarProductTypeSchema).nullable().optional(),
   sarPolarisation: SarPolarisationSchema.nullable().optional(),
-  sarGrazingAngleMin: z.number().min(10).max(80).nullable().optional(),
-  sarGrazingAngleMax: z.number().min(10).max(80).nullable().optional(),
-  sarAzimuthAngleMin: z.number().min(0).max(360).nullable().optional(),
-  sarAzimuthAngleMax: z.number().min(0).max(360).nullable().optional(),
+  sarGrazingAngleMin: z.number().min(10).max(80).nullable()
+    .optional(),
+  sarGrazingAngleMax: z.number().min(10).max(80).nullable()
+    .optional(),
+  sarAzimuthAngleMin: z.number().min(0).max(360).nullable()
+    .optional(),
+  sarAzimuthAngleMax: z.number().min(0).max(360).nullable()
+    .optional(),
   sarNumberOfLooks: z.number().int().nullable().optional(),
 });
 
