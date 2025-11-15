@@ -1,0 +1,54 @@
+{
+  "serviceName": "skyfi-mcp-server",
+  "cluster": "skyfi-mcp-cluster",
+  "taskDefinition": "skyfi-mcp-server",
+  "launchType": "FARGATE",
+  "platformVersion": "LATEST",
+  "desiredCount": 1,
+  "deploymentConfiguration": {
+    "deploymentCircuitBreaker": {
+      "enable": true,
+      "rollback": true
+    },
+    "maximumPercent": 200,
+    "minimumHealthyPercent": 100
+  },
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "subnets": [
+        "subnet-xxxxxxxx",
+        "subnet-yyyyyyyy"
+      ],
+      "securityGroups": [
+        "sg-xxxxxxxxx"
+      ],
+      "assignPublicIp": "ENABLED"
+    }
+  },
+  "loadBalancers": [
+    {
+      "targetGroupArn": "arn:aws:elasticloadbalancing:REGION:ACCOUNT_ID:targetgroup/skyfi-mcp-tg/xxxxxxxxx",
+      "containerName": "skyfi-mcp-server",
+      "containerPort": 3000
+    }
+  ],
+  "healthCheckGracePeriodSeconds": 60,
+  "schedulingStrategy": "REPLICA",
+  "enableECSManagedTags": true,
+  "propagateTags": "SERVICE",
+  "enableExecuteCommand": true,
+  "tags": [
+    {
+      "key": "Application",
+      "value": "skyfi-mcp-server"
+    },
+    {
+      "key": "Environment",
+      "value": "production"
+    },
+    {
+      "key": "ManagedBy",
+      "value": "ecs"
+    }
+  ]
+}

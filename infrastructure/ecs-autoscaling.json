@@ -1,0 +1,34 @@
+{
+  "serviceNamespace": "ecs",
+  "resourceId": "service/skyfi-mcp-cluster/skyfi-mcp-server",
+  "scalableDimension": "ecs:service:DesiredCount",
+  "minCapacity": 1,
+  "maxCapacity": 10,
+  "targetTrackingScalingPolicies": [
+    {
+      "policyName": "skyfi-mcp-cpu-scaling",
+      "policyType": "TargetTrackingScaling",
+      "targetTrackingScalingPolicyConfiguration": {
+        "targetValue": 70.0,
+        "predefinedMetricSpecification": {
+          "predefinedMetricType": "ECSServiceAverageCPUUtilization"
+        },
+        "scaleInCooldown": 300,
+        "scaleOutCooldown": 60
+      }
+    },
+    {
+      "policyName": "skyfi-mcp-memory-scaling",
+      "policyType": "TargetTrackingScaling",
+      "targetTrackingScalingPolicyConfiguration": {
+        "targetValue": 80.0,
+        "predefinedMetricSpecification": {
+          "predefinedMetricType": "ECSServiceAverageMemoryUtilization"
+        },
+        "scaleInCooldown": 300,
+        "scaleOutCooldown": 60
+      }
+    }
+  ],
+  "stepScalingPolicies": []
+}
