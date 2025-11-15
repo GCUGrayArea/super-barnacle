@@ -94,14 +94,14 @@ This document will be referenced by all subsequent PRs. Keep it concise but comp
 ## Block 2: Core Infrastructure (Depends on: Block 1)
 
 ### PR-004: Logging and Error Handling Infrastructure
-**Status:** New
+**Status:** In Progress
 **Dependencies:** PR-001
 **Priority:** High
 
 **Description:**
 Set up structured logging with Winston and create standardized error handling patterns that will be used throughout the application.
 
-**Files (ESTIMATED - will be refined during Planning):**
+**Files (VERIFIED):**
 - src/lib/logger.ts (create) - Winston logger configuration
 - src/lib/errors.ts (create) - Custom error classes (SkyFiAPIError, ValidationError, etc.)
 - src/lib/error-handler.ts (create) - Centralized error handling middleware
@@ -156,26 +156,26 @@ This is critical infrastructure. All SkyFi API interactions will use this client
 ---
 
 ### PR-006: Type Definitions from OpenAPI Schema
-**Status:** New
+**Status:** Complete
 **Dependencies:** PR-001
 **Priority:** High
 
 **Description:**
 Generate TypeScript type definitions from the SkyFi OpenAPI spec, with Zod schemas for runtime validation.
 
-**Files (ESTIMATED - will be refined during Planning):**
+**Files (VERIFIED):**
 - src/types/skyfi-api.ts (create) - Generated TypeScript types from OpenAPI
 - src/schemas/skyfi.schemas.ts (create) - Zod validation schemas
 - scripts/generate-types.ts (create) - Script to generate types from OpenAPI
 - __tests__/schemas/skyfi.schemas.test.ts (create) - Schema validation tests
 
 **Acceptance Criteria:**
-- [ ] All SkyFi API request/response types defined
-- [ ] Zod schemas for runtime validation of API responses
-- [ ] Type-safe enums for ProductType, Resolution, DeliveryDriver, etc.
-- [ ] Script to regenerate types from updated OpenAPI spec
-- [ ] 100% type coverage (no `any` types)
-- [ ] Tests verify schema validation works correctly
+- [x] All SkyFi API request/response types defined
+- [x] Zod schemas for runtime validation of API responses
+- [x] Type-safe enums for ProductType, Resolution, DeliveryDriver, etc.
+- [x] Script to regenerate types from updated OpenAPI spec
+- [x] 100% type coverage (no `any` types)
+- [x] Tests verify schema validation works correctly
 
 **Notes:**
 Consider using openapi-typescript or similar tool for generation. Ensure types match docs/openapi.json exactly.
