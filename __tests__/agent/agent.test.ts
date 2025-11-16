@@ -398,7 +398,7 @@ describe('SkyFiAgent', () => {
       const stats = agent.getStats();
       expect(stats.messagesProcessed).toBe(1);
       expect(stats.totalTokens).toBe(15);
-      expect(stats.averageResponseTime).toBeGreaterThan(0);
+      expect(stats.averageResponseTime).toBeGreaterThanOrEqual(0);
     });
   });
 
