@@ -76,7 +76,7 @@ export const mockArchive: Archive = {
 export const mockOpenDataArchive: Archive = {
   ...mockArchive,
   archiveId: 'db4794dd-da6a-45b4-ac6e-b9e50e36bb29',
-  provider: Provider.ESA,
+  provider: Provider.Sentinel2,
   constellation: 'SENTINEL2',
   productType: ProductType.Multispectral,
   resolution: Resolution.Low,

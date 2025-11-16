@@ -2,10 +2,11 @@
  * Mock SkyFi API Server
  *
  * Provides mock HTTP responses for the SkyFi API during E2E tests.
- * Uses nock to intercept HTTP requests.
+ * Uses axios-mock-adapter to intercept HTTP requests.
  */
 
-import nock from 'nock';
+import MockAdapter from 'axios-mock-adapter';
+import type { AxiosInstance } from 'axios';
 import type { Archive, ArchiveSearchResponse } from '../../src/types/archives.js';
 import type { Notification } from '../../src/types/notifications.js';
 import type { FeasibilityCheckResponse, PassPredictionResponse } from '../../src/types/feasibility.js';
@@ -21,23 +22,25 @@ import { DeliveryStatus } from '../../src/types/order-status.js';
 /**
  * Mock SkyFi API Server
  *
- * Sets up nock interceptors for the SkyFi API
+ * Sets up axios-mock-adapter interceptors for the SkyFi API
  */
 export class MockSkyFiServer {
   private baseUrl: string;
-  private scope?: nock.Scope;
+  private mockAdapter?: MockAdapter;
+  private axiosInstance?: AxiosInstance;
 
   constructor(baseUrl: string = 'https://api.skyfi.com') {
     this.baseUrl = baseUrl;
   }
 
   /**
-   * Start the mock server
+   * Start the mock server with the given axios instance
    */
-  start(): void {
-    // Enable nock
-    if (!nock.isActive()) {
-      nock.activate();
+  start(axiosInstance?: AxiosInstance): void {
+    if (axiosInstance) {
+      this.axiosInstance = axiosInstance;
+      // Set onNoMatch to 'throwException' so we get clear errors for unmocked requests
+      this.mockAdapter = new MockAdapter(axiosInstance, { onNoMatch: 'throwException' });
     }
   }
 
@@ -45,22 +48,28 @@ export class MockSkyFiServer {
    * Stop the mock server
    */
   stop(): void {
-    nock.cleanAll();
-    this.scope = undefined;
+    if (this.mockAdapter) {
+      this.mockAdapter.restore();
+      this.mockAdapter = undefined;
+    }
+    this.axiosInstance = undefined;
   }
 
   /**
    * Reset all interceptors
    */
   reset(): void {
-    // Don't clean all - just let nock persist the interceptors
-    // Individual test can set up their own mocks
+    if (this.mockAdapter) {
+      this.mockAdapter.reset();
+    }
   }
 
   /**
    * Mock archive search
    */
   mockArchiveSearch(response?: Partial<ArchiveSearchResponse>): void {
+    if (!this.mockAdapter) return;
+
     const defaultArchive: Archive = {
       archiveId: '354b783d-8fad-4050-a167-2eb069653777',
       provider: Provider.Satellogic,
@@ -91,13 +100,15 @@ export class MockSkyFiServer {
       ...response,
     };
 
-    nock(this.baseUrl).post('/archives').reply(200, defaultResponse);
+    this.mockAdapter.onPost('/archives').reply(200, defaultResponse);
   }
 
   /**
    * Mock get archive by ID
    */
   mockGetArchive(archiveId: string, archive?: Partial<Archive>): void {
+    if (!this.mockAdapter) return;
+
     const defaultArchive: Archive = {
       archiveId,
       provider: Provider.Satellogic,
@@ -122,59 +133,74 @@ export class MockSkyFiServer {
       ...archive,
     };
 
-    nock(this.baseUrl).get(`/archives/${archiveId}`).reply(200, defaultArchive);
+    this.mockAdapter.onGet(`/archives/${archiveId}`).reply(200, defaultArchive);
   }
 
   /**
    * Mock archive order
    */
   mockArchiveOrder(orderId: string = 'order-123'): void {
+    if (!this.mockAdapter) return;
+
     const response = {
       id: orderId,
-      ownerId: 'user-123',
+      ownerId: '550e8400-e29b-41d4-a716-446655440000',
       orderCode: `ORDER-${orderId.toUpperCase()}`,
       orderId,
       itemId: `item-${orderId}`,
+      orderType: 'ARCHIVE',
       aoi: 'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))',
       aoiSqkm: 1.5,
       status: DeliveryStatus.CREATED,
       orderCost: 25000,
       createdAt: new Date().toISOString(),
       deliveryDriver: DeliveryDriver.S3,
+      deliveryParams: {},
+      archiveId: '354b783d-8fad-4050-a167-2eb069653777',
       downloadImageUrl: null,
       downloadPayloadUrl: null,
     };
 
-    nock(this.baseUrl).post('/orders/archive').reply(201, response);
+    this.mockAdapter.onPost('/order-archive').reply(201, response);
   }
 
   /**
    * Mock tasking order
    */
   mockTaskingOrder(orderId: string = 'tasking-order-123'): void {
+    if (!this.mockAdapter) return;
+
     const response = {
       id: orderId,
-      ownerId: 'user-123',
+      ownerId: '550e8400-e29b-41d4-a716-446655440000',
       orderCode: `ORDER-${orderId.toUpperCase()}`,
       orderId,
       itemId: `item-${orderId}`,
+      orderType: 'TASKING',
       aoi: 'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))',
       aoiSqkm: 1.5,
       status: DeliveryStatus.CREATED,
       orderCost: 50000,
       createdAt: new Date().toISOString(),
       deliveryDriver: DeliveryDriver.S3,
+      deliveryParams: {},
+      windowStart: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      windowEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      productType: 'DAY',
+      resolution: 'VERY HIGH',
       downloadImageUrl: null,
       downloadPayloadUrl: null,
     };
 
-    nock(this.baseUrl).post('/orders/tasking').reply(201, response);
+    this.mockAdapter.onPost('/order-tasking').reply(201, response);
   }
 
   /**
    * Mock feasibility check
    */
   mockFeasibilityCheck(feasible: boolean = true): void {
+    if (!this.mockAdapter) return;
+
     const response: FeasibilityCheckResponse = {
       id: 'feasibility-123',
       validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -206,13 +232,15 @@ export class MockSkyFiServer {
           },
     };
 
-    nock(this.baseUrl).post('/tasking/feasibility').reply(200, response);
+    this.mockAdapter.onPost('/feasibility').reply(200, response);
   }
 
   /**
    * Mock satellite passes prediction
    */
   mockPredictPasses(): void {
+    if (!this.mockAdapter) return;
+
     const response: PassPredictionResponse = {
       passes: [
         {
@@ -260,99 +288,125 @@ export class MockSkyFiServer {
       ],
     };
 
-    nock(this.baseUrl).post('/tasking/predict-passes').reply(200, response);
+    this.mockAdapter.onPost('/feasibility/pass-prediction').reply(200, response);
   }
 
   /**
    * Mock list orders
    */
   mockListOrders(orderType?: string): void {
+    if (!this.mockAdapter) return;
+
     const orders = [
       {
-        id: 'order-1',
-        orderId: 'order-1',
-        itemId: 'item-1',
-        ownerId: 'user-123',
+        id: '550e8400-e29b-41d4-a716-446655440001',
+        orderId: '550e8400-e29b-41d4-a716-446655440001',
+        itemId: '550e8400-e29b-41d4-a716-446655440011',
+        ownerId: '550e8400-e29b-41d4-a716-446655440000',
         orderCode: 'ORDER-1',
+        orderType: 'ARCHIVE',
         aoi: 'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))',
         aoiSqkm: 1.5,
         status: DeliveryStatus.DELIVERY_COMPLETED,
         orderCost: 25000,
         createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        deliveryDriver: DeliveryDriver.S3,
+        deliveryParams: {},
+        archiveId: '354b783d-8fad-4050-a167-2eb069653777',
         downloadImageUrl: 'https://example.com/image.tif',
         downloadPayloadUrl: 'https://example.com/payload.zip',
       },
       {
-        id: 'order-2',
-        orderId: 'order-2',
-        itemId: 'item-2',
-        ownerId: 'user-123',
+        id: '550e8400-e29b-41d4-a716-446655440002',
+        orderId: '550e8400-e29b-41d4-a716-446655440002',
+        itemId: '550e8400-e29b-41d4-a716-446655440012',
+        ownerId: '550e8400-e29b-41d4-a716-446655440000',
         orderCode: 'ORDER-2',
+        orderType: 'TASKING',
         aoi: 'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))',
         aoiSqkm: 1.5,
         status: DeliveryStatus.CREATED,
         orderCost: 50000,
         createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        deliveryDriver: DeliveryDriver.S3,
+        deliveryParams: {},
+        windowStart: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        windowEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        productType: 'DAY',
+        resolution: 'VERY HIGH',
         downloadImageUrl: null,
         downloadPayloadUrl: null,
       },
     ];
 
-    const queryParam = orderType ? `?orderType=${orderType}` : '';
-    nock(this.baseUrl)
-      .get(`/orders${queryParam}`)
-      .reply(200, {
-        orders,
-        total: orders.length,
-        pageNumber: 0,
-        pageSize: 10,
-      });
+    const responseData = {
+      request: {},
+      orders,
+      total: orders.length,
+      pageNumber: 0,
+      pageSize: 10,
+    };
+
+    // Mock both with and without query parameters
+    this.mockAdapter.onGet('/orders').reply(200, responseData);
+    if (orderType) {
+      this.mockAdapter.onGet(`/orders`, { params: { orderType } }).reply(200, responseData);
+    }
   }
 
   /**
    * Mock get order details
    */
   mockGetOrder(orderId: string, status: DeliveryStatus = DeliveryStatus.CREATED): void {
+    if (!this.mockAdapter) return;
+
     const response = {
       id: orderId,
       orderId,
-      itemId: `item-${orderId}`,
-      ownerId: 'user-123',
+      itemId: '550e8400-e29b-41d4-a716-446655440099',
+      ownerId: '550e8400-e29b-41d4-a716-446655440000',
       orderCode: `ORDER-${orderId.toUpperCase()}`,
+      orderType: 'ARCHIVE',
       aoi: 'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))',
       aoiSqkm: 1.5,
       status,
       orderCost: 25000,
       createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
       deliveryDriver: DeliveryDriver.S3,
+      deliveryParams: {},
+      archiveId: '354b783d-8fad-4050-a167-2eb069653777',
       downloadImageUrl: status === DeliveryStatus.DELIVERY_COMPLETED ? 'https://example.com/image.tif' : null,
       downloadPayloadUrl: status === DeliveryStatus.DELIVERY_COMPLETED ? 'https://example.com/payload.zip' : null,
     };
 
-    nock(this.baseUrl).get(`/orders/${orderId}`).reply(200, response);
+    this.mockAdapter.onGet(`/orders/${orderId}`).reply(200, response);
   }
 
   /**
    * Mock order redelivery
    */
   mockRedelivery(orderId: string): void {
+    if (!this.mockAdapter) return;
+
     const response = {
       success: true,
       message: 'Redelivery initiated',
       orderId,
     };
 
-    nock(this.baseUrl).post(`/orders/${orderId}/redelivery`).reply(200, response);
+    this.mockAdapter.onPost(`/orders/${orderId}/redelivery`).reply(200, response);
   }
 
   /**
    * Mock create notification
    */
   mockCreateNotification(notificationId: string = '550e8400-e29b-41d4-a716-446655440000'): void {
+    if (!this.mockAdapter) return;
+
     const response = {
       notification: {
         id: notificationId,
-        userId: 'user-123',
+        userId: '550e8400-e29b-41d4-a716-446655440000',
         aoi: 'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))',
         webhookUrl: 'https://example.com/webhook',
         isActive: true,
@@ -362,17 +416,19 @@ export class MockSkyFiServer {
       },
     };
 
-    nock(this.baseUrl).post('/notifications').reply(201, response);
+    this.mockAdapter.onPost('/notifications').reply(201, response);
   }
 
   /**
    * Mock list notifications
    */
   mockListNotifications(): void {
+    if (!this.mockAdapter) return;
+
     const notifications: Notification[] = [
       {
         id: '550e8400-e29b-41d4-a716-446655440001',
-        userId: 'user-123',
+        userId: '550e8400-e29b-41d4-a716-446655440000',
         aoi: 'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))',
         webhookUrl: 'https://example.com/webhook',
         isActive: true,
@@ -382,7 +438,7 @@ export class MockSkyFiServer {
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440002',
-        userId: 'user-123',
+        userId: '550e8400-e29b-41d4-a716-446655440000',
         aoi: 'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))',
         webhookUrl: 'https://example.com/webhook2',
         isActive: false,
@@ -392,26 +448,30 @@ export class MockSkyFiServer {
       },
     ];
 
-    nock(this.baseUrl).get('/notifications').reply(200, { notifications, total: notifications.length });
+    this.mockAdapter.onGet('/notifications').reply(200, { notifications, total: notifications.length });
   }
 
   /**
    * Mock delete notification
    */
   mockDeleteNotification(notificationId: string): void {
+    if (!this.mockAdapter) return;
+
     const response = {
       success: true,
       message: 'Notification deleted successfully',
       deletedId: notificationId,
     };
 
-    nock(this.baseUrl).delete(`/notifications/${notificationId}`).reply(200, response);
+    this.mockAdapter.onDelete(`/notifications/${notificationId}`).reply(200, response);
   }
 
   /**
    * Mock get pricing
    */
   mockGetPricing(): void {
+    if (!this.mockAdapter) return;
+
     const response: PricingResponse = {
       productTypes: {
         DAY: {
@@ -437,31 +497,32 @@ export class MockSkyFiServer {
       },
     };
 
-    nock(this.baseUrl).get('/pricing').reply(200, response);
+    this.mockAdapter.onGet('/pricing').reply(200, response);
   }
 
   /**
    * Mock an error response
    */
   mockError(endpoint: string, method: string, statusCode: number, errorMessage: string): void {
+    if (!this.mockAdapter) return;
+
     const error = {
       message: errorMessage,
       errorCode: `ERROR_${statusCode}`,
     };
 
-    const nockScope = nock(this.baseUrl);
     switch (method.toUpperCase()) {
       case 'GET':
-        nockScope.get(endpoint).reply(statusCode, error);
+        this.mockAdapter.onGet(endpoint).reply(statusCode, error);
         break;
       case 'POST':
-        nockScope.post(endpoint).reply(statusCode, error);
+        this.mockAdapter.onPost(endpoint).reply(statusCode, error);
         break;
       case 'PUT':
-        nockScope.put(endpoint).reply(statusCode, error);
+        this.mockAdapter.onPut(endpoint).reply(statusCode, error);
         break;
       case 'DELETE':
-        nockScope.delete(endpoint).reply(statusCode, error);
+        this.mockAdapter.onDelete(endpoint).reply(statusCode, error);
         break;
     }
   }

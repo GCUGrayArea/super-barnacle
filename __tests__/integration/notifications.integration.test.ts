@@ -14,8 +14,8 @@ import {
   getNotificationById,
   deleteNotification,
 } from '../../src/skyfi/notifications';
-import { ProductType, Resolution, Provider } from '../../src/types/skyfi-api';
 import type { CreateNotificationParams } from '../../src/types/notifications';
+import { ProductType, Resolution, Provider } from '../../src/types/notifications';
 import {
   mockNotification,
   mockNotificationsListResponse,
@@ -255,7 +255,7 @@ describe('Notifications Integration Tests', () => {
       const activeNotification = mockNotification;
       const inactiveNotification = {
         ...mockNotification,
-        id: 'inactive-notification-id',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         isActive: false,
       };
 

@@ -170,7 +170,7 @@ export async function handleArchiveOrder(
     };
 
     // Place the order using SkyFi API
-    const response = await placeArchiveOrder(orderRequest, client);
+    const response = await placeArchiveOrder(client, orderRequest);
 
     // Format and return the result
     const formattedResult = formatArchiveOrderResult(response);

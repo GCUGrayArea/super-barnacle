@@ -80,6 +80,13 @@ export class SkyFiClient {
   }
 
   /**
+   * Get the underlying axios instance (for testing purposes)
+   */
+  getAxiosInstance(): AxiosInstance {
+    return this.axiosInstance;
+  }
+
+  /**
    * Handle axios errors and convert to custom error types
    */
   private async handleError(error: AxiosError): Promise<never> {

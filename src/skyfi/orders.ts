@@ -29,16 +29,16 @@ import {
  * Orders imagery from SkyFi's archive catalog. The imagery already exists
  * and will be delivered to your specified cloud storage location.
  *
- * @param params - Archive order parameters
  * @param client - SkyFi client instance
+ * @param params - Archive order parameters
  * @returns Promise resolving to archive order response
  * @throws {ValidationError} If request parameters are invalid
  * @throws {DeliveryValidationError} If delivery configuration is invalid
  * @throws {SkyFiAPIError} If API request fails
  */
 export async function placeArchiveOrder(
-  params: ArchiveOrderRequest,
   client: SkyFiClient,
+  params: ArchiveOrderRequest,
 ): Promise<ArchiveOrderResponse> {
   logger.info('Placing archive order', {
     archiveId: params.archiveId,
@@ -90,16 +90,16 @@ export async function placeArchiveOrder(
  * Orders new satellite imagery to be captured within a specified time window.
  * This is a more complex and expensive operation than archive orders.
  *
- * @param params - Tasking order parameters
  * @param client - SkyFi client instance
+ * @param params - Tasking order parameters
  * @returns Promise resolving to tasking order response
  * @throws {ValidationError} If request parameters are invalid
  * @throws {DeliveryValidationError} If delivery configuration is invalid
  * @throws {SkyFiAPIError} If API request fails
  */
 export async function placeTaskingOrder(
-  params: TaskingOrderRequest,
   client: SkyFiClient,
+  params: TaskingOrderRequest,
 ): Promise<TaskingOrderResponse> {
   logger.info('Placing tasking order', {
     productType: params.productType,

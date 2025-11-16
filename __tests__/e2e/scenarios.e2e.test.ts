@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import { MockSkyFiServer } from '../helpers/mock-skyfi-server.js';
 import { SkyFiClient } from '../../src/skyfi/client.js';
-import { DeliveryDriver, ProductType, Resolution } from '../../src/types/skyfi-api.js';
+import { DeliveryDriver, ProductType, Resolution } from '../../src/types/orders.js';
 import { DeliveryStatus } from '../../src/types/order-status.js';
 
 // Import tool executors
@@ -35,10 +35,6 @@ describe('MCP Tools Scenario Tests', () => {
     process.env.SKYFI_API_KEY = 'test-api-key';
     process.env.SKYFI_BASE_URL = 'https://api.skyfi.com';
 
-    // Create and start mock SkyFi API server
-    mockSkyFi = new MockSkyFiServer('https://api.skyfi.com');
-    mockSkyFi.start();
-
     // Create SkyFi client
     skyfiClient = new SkyFiClient({
       apiKey: 'test-api-key',
@@ -47,6 +43,10 @@ describe('MCP Tools Scenario Tests', () => {
       maxRetries: 0,
       debug: false,
     });
+
+    // Create and start mock SkyFi API server with the client's axios instance
+    mockSkyFi = new MockSkyFiServer('https://api.skyfi.com');
+    mockSkyFi.start(skyfiClient.getAxiosInstance());
   });
 
   afterAll(() => {
@@ -60,7 +60,7 @@ describe('MCP Tools Scenario Tests', () => {
   describe('Scenario: Archive Imagery Purchase Workflow', () => {
     it('should complete full archive purchase workflow', async () => {
       const archiveId = '354b783d-8fad-4050-a167-2eb069653777';
-      const orderId = 'order-archive-123';
+      const orderId = '550e8400-e29b-41d4-a716-446655440010';
       const aoi =
         'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))';
 
@@ -99,14 +99,14 @@ describe('MCP Tools Scenario Tests', () => {
           deliveryParams: {
             s3_bucket_id: 'my-satellite-images',
             aws_region: 'us-east-1',
-            aws_access_key: 'test-key',
-            aws_secret_key: 'test-secret',
+            aws_access_key: 'AKIAIOSFODNN7EXAMPLE',
+            aws_secret_key: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
           },
           label: 'Test Archive Order',
         },
         skyfiClient
       );
-      expect(orderResult).toContain('Order Confirmation');
+      expect(orderResult).toContain('Order Placed Successfully');
       expect(orderResult).toContain(orderId);
 
       // Step 5: Check order status
@@ -123,16 +123,16 @@ describe('MCP Tools Scenario Tests', () => {
         'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))';
       const captureStartDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
       const captureEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-      const orderId = 'tasking-order-456';
+      const orderId = '550e8400-e29b-41d4-a716-446655440020';
 
       // Step 1: Check feasibility
       mockSkyFi.mockFeasibilityCheck(true);
       const feasibilityResult = await executeCheckTaskingFeasibility(skyfiClient, {
         aoi,
-        productType: ProductType.Day,
-        resolution: Resolution.VeryHigh,
-        startDate: captureStartDate,
-        endDate: captureEndDate,
+        productType: 'Day',
+        resolution: 'VeryHigh',
+        windowStart: captureStartDate,
+        windowEnd: captureEndDate,
       });
       expect(feasibilityResult).toContain('Feasibility');
       expect(feasibilityResult).toContain('95');
@@ -156,22 +156,22 @@ describe('MCP Tools Scenario Tests', () => {
       const orderResult = await handleTaskingOrder(
         {
           aoi,
-          captureStartDate,
-          captureEndDate,
+          windowStart: captureStartDate,
+          windowEnd: captureEndDate,
           productType: ProductType.Day,
           resolution: Resolution.VeryHigh,
           deliveryDriver: DeliveryDriver.S3,
           deliveryParams: {
             s3_bucket_id: 'satellite-imagery',
             aws_region: 'us-east-1',
-            aws_access_key: 'test-key',
-            aws_secret_key: 'test-secret',
+            aws_access_key: 'AKIAIOSFODNN7EXAMPLE',
+            aws_secret_key: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
           },
           label: 'Test Tasking Order',
         },
         skyfiClient
       );
-      expect(orderResult).toContain('Order Confirmation');
+      expect(orderResult).toContain('Order Placed Successfully');
       expect(orderResult).toContain(orderId);
 
       // Step 5: Check order status
@@ -191,10 +191,10 @@ describe('MCP Tools Scenario Tests', () => {
       mockSkyFi.mockFeasibilityCheck(false);
       const feasibilityResult = await executeCheckTaskingFeasibility(skyfiClient, {
         aoi,
-        productType: ProductType.Day,
-        resolution: Resolution.VeryHigh,
-        startDate: captureStartDate,
-        endDate: captureEndDate,
+        productType: 'Day',
+        resolution: 'VeryHigh',
+        windowStart: captureStartDate,
+        windowEnd: captureEndDate,
       });
       expect(feasibilityResult).toContain('Feasibility');
       expect(feasibilityResult).toContain('10');
@@ -203,12 +203,12 @@ describe('MCP Tools Scenario Tests', () => {
 
   describe('Scenario: Order Management Workflow', () => {
     it('should list, view, and manage orders', async () => {
-      const orderId = 'order-789';
+      const orderId = '550e8400-e29b-41d4-a716-446655440099';
 
       // Step 1: List all orders
       mockSkyFi.mockListOrders();
       const listResponse = await executeListOrders(skyfiClient, { pageSize: 10 });
-      expect(listResponse.content[0].text).toContain('Orders');
+      expect(listResponse.content[0].text).toContain('orders');
 
       // Step 2: Get specific order details
       mockSkyFi.mockGetOrder(orderId, DeliveryStatus.DELIVERY_COMPLETED);
@@ -253,7 +253,7 @@ describe('MCP Tools Scenario Tests', () => {
   describe('Scenario: Complete Order Lifecycle', () => {
     it('should track an order from creation to completion', async () => {
       const archiveId = '354b783d-8fad-4050-a167-2eb069653777';
-      const orderId = 'order-lifecycle-123';
+      const orderId = '550e8400-e29b-41d4-a716-446655440030';
       const aoi =
         'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))';
       const notificationId = '550e8400-e29b-41d4-a716-446655440000';
@@ -276,13 +276,13 @@ describe('MCP Tools Scenario Tests', () => {
           deliveryParams: {
             s3_bucket_id: 'test-bucket',
             aws_region: 'us-east-1',
-            aws_access_key: 'test-key',
-            aws_secret_key: 'test-secret',
+            aws_access_key: 'AKIAIOSFODNN7EXAMPLE',
+            aws_secret_key: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
           },
         },
         skyfiClient
       );
-      expect(orderResult).toContain('Order Confirmation');
+      expect(orderResult).toContain('Order Placed Successfully');
 
       // Step 3: Check order status (pending)
       mockSkyFi.mockGetOrder(orderId, DeliveryStatus.CREATED);
@@ -302,7 +302,7 @@ describe('MCP Tools Scenario Tests', () => {
       // Step 6: List orders to verify it appears
       mockSkyFi.mockListOrders();
       const listResponse = await executeListOrders(skyfiClient, {});
-      expect(listResponse.content[0].text).toContain('Orders');
+      expect(listResponse.content[0].text).toContain('orders');
     });
   });
 });

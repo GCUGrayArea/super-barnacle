@@ -393,7 +393,7 @@ describe('Order Management Integration Tests', () => {
         data: mockOrdersListResponse,
       });
 
-      const result = await orderManagement.listOrders({ pageSize: 100 });
+      const result = await orderManagement.listOrders({ pageSize: 25 });
 
       expect(result.orders).toBeDefined();
     });

@@ -308,7 +308,7 @@ export async function handleTaskingOrder(
     };
 
     // Place the order using SkyFi API
-    const response = await placeTaskingOrder(orderRequest, client);
+    const response = await placeTaskingOrder(client, orderRequest);
 
     // Format and return the result
     const formattedResult = formatTaskingOrderResult(response);

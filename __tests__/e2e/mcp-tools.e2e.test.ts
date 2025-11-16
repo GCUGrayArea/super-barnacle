@@ -8,7 +8,8 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import { MockSkyFiServer } from '../helpers/mock-skyfi-server.js';
 import { SkyFiClient } from '../../src/skyfi/client.js';
-import { DeliveryDriver, Provider, ProductType, Resolution } from '../../src/types/skyfi-api.js';
+import { Provider } from '../../src/types/skyfi-api.js';
+import { DeliveryDriver, ProductType, Resolution } from '../../src/types/orders.js';
 import { DeliveryStatus } from '../../src/types/order-status.js';
 
 // Import all tool executors
@@ -35,10 +36,6 @@ describe('MCP Tools E2E Integration Tests', () => {
     process.env.SKYFI_API_KEY = 'test-api-key';
     process.env.SKYFI_BASE_URL = 'https://api.skyfi.com';
 
-    // Create and start mock SkyFi API server
-    mockSkyFi = new MockSkyFiServer('https://api.skyfi.com');
-    mockSkyFi.start();
-
     // Create SkyFi client
     skyfiClient = new SkyFiClient({
       apiKey: 'test-api-key',
@@ -47,6 +44,10 @@ describe('MCP Tools E2E Integration Tests', () => {
       maxRetries: 0,
       debug: false,
     });
+
+    // Create and start mock SkyFi API server with the client's axios instance
+    mockSkyFi = new MockSkyFiServer('https://api.skyfi.com');
+    mockSkyFi.start(skyfiClient.getAxiosInstance());
   });
 
   afterAll(() => {
@@ -116,14 +117,14 @@ describe('MCP Tools E2E Integration Tests', () => {
           deliveryParams: {
             s3_bucket_id: 'test-bucket',
             aws_region: 'us-east-1',
-            aws_access_key: 'test-key',
-            aws_secret_key: 'test-secret',
+            aws_access_key: 'AKIAIOSFODNN7EXAMPLE',
+            aws_secret_key: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
           },
         },
         skyfiClient
       );
 
-      expect(result).toContain('Order Confirmation');
+      expect(result).toContain('Order Placed Successfully');
       expect(result).toContain('order-123');
     });
   });
@@ -135,22 +136,22 @@ describe('MCP Tools E2E Integration Tests', () => {
       const result = await handleTaskingOrder(
         {
           aoi: 'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))',
-          captureStartDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          captureEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          windowStart: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          windowEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
           productType: ProductType.Day,
           resolution: Resolution.VeryHigh,
           deliveryDriver: DeliveryDriver.S3,
           deliveryParams: {
             s3_bucket_id: 'test-bucket',
             aws_region: 'us-east-1',
-            aws_access_key: 'test-key',
-            aws_secret_key: 'test-secret',
+            aws_access_key: 'AKIAIOSFODNN7EXAMPLE',
+            aws_secret_key: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
           },
         },
         skyfiClient
       );
 
-      expect(result).toContain('Order Confirmation');
+      expect(result).toContain('Order Placed Successfully');
       expect(result).toContain('tasking-order-123');
     });
   });
@@ -161,10 +162,10 @@ describe('MCP Tools E2E Integration Tests', () => {
 
       const result = await executeCheckTaskingFeasibility(skyfiClient, {
         aoi: 'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))',
-        productType: ProductType.Day,
-        resolution: Resolution.VeryHigh,
-        startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        productType: 'Day',
+        resolution: 'VeryHigh',
+        windowStart: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        windowEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       });
 
       expect(result).toContain('Feasibility');
@@ -176,10 +177,10 @@ describe('MCP Tools E2E Integration Tests', () => {
 
       const result = await executeCheckTaskingFeasibility(skyfiClient, {
         aoi: 'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))',
-        productType: ProductType.Day,
-        resolution: Resolution.VeryHigh,
-        startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        productType: 'Day',
+        resolution: 'VeryHigh',
+        windowStart: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        windowEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       });
 
       expect(result).toContain('Feasibility');
@@ -209,8 +210,8 @@ describe('MCP Tools E2E Integration Tests', () => {
       const response = await executeListOrders(skyfiClient, {});
 
       expect(response.content).toHaveLength(1);
-      expect(response.content[0].text).toContain('Orders');
-      expect(response.content[0].text).toContain('order-1');
+      expect(response.content[0].text).toContain('orders');
+      expect(response.content[0].text).toContain('ORDER-1');
     });
 
     it('should list orders with pagination', async () => {
@@ -222,13 +223,13 @@ describe('MCP Tools E2E Integration Tests', () => {
       });
 
       expect(response.content).toHaveLength(1);
-      expect(response.content[0].text).toContain('Orders');
+      expect(response.content[0].text).toContain('orders');
     });
   });
 
   describe('Tool: get_order_details', () => {
     it('should get order details successfully', async () => {
-      const orderId = 'order-123';
+      const orderId = '550e8400-e29b-41d4-a716-446655440099';
       mockSkyFi.mockGetOrder(orderId, DeliveryStatus.CREATED);
 
       const response = await executeGetOrderDetails(skyfiClient, { orderId });
@@ -241,7 +242,7 @@ describe('MCP Tools E2E Integration Tests', () => {
 
   describe('Tool: trigger_order_redelivery', () => {
     it('should trigger redelivery successfully', async () => {
-      const orderId = 'order-123';
+      const orderId = '550e8400-e29b-41d4-a716-446655440099';
       mockSkyFi.mockRedelivery(orderId);
 
       const response = await executeTriggerRedelivery(skyfiClient, { orderId });

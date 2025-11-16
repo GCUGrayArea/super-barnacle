@@ -60,7 +60,7 @@ describe('Order Placement Integration Tests', () => {
 
   describe('Archive Order Placement - Success Cases', () => {
     it('should place archive order with S3 delivery', async () => {
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: mockArchiveOrder,
         status: 200,
       });
@@ -74,11 +74,13 @@ describe('Order Placement Integration Tests', () => {
 
       expect(result.orderId).toBe(mockArchiveOrder.orderId);
       expect(result.deliveryDriver).toBe(DeliveryDriver.S3);
-      expect(mockAxiosInstance.request).toHaveBeenCalledWith(
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/order-archive',
         expect.objectContaining({
-          method: 'POST',
-          url: '/order-archive',
+          aoi: validWKTPolygonLarge,
+          archiveId: 'db4794dd-da6a-45b4-ac6e-b9e50e36bb29',
         }),
+        undefined,
       );
     });
 
@@ -89,7 +91,7 @@ describe('Order Placement Integration Tests', () => {
         deliveryParams: mockGCSDeliveryParams,
       };
 
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: gcsOrder,
         status: 200,
       });
@@ -111,7 +113,7 @@ describe('Order Placement Integration Tests', () => {
         deliveryParams: mockAzureDeliveryParams,
       };
 
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: azureOrder,
         status: 200,
       });
@@ -132,7 +134,7 @@ describe('Order Placement Integration Tests', () => {
         webhookUrl: 'https://example.com/webhook',
       };
 
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: orderWithWebhook,
         status: 200,
       });
@@ -154,7 +156,7 @@ describe('Order Placement Integration Tests', () => {
         metadata: { project: 'test-project', team: 'engineering' },
       };
 
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: orderWithMetadata,
         status: 200,
       });
@@ -176,7 +178,7 @@ describe('Order Placement Integration Tests', () => {
         orderCost: 0,
       };
 
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: openDataOrder,
         status: 200,
       });
@@ -194,7 +196,7 @@ describe('Order Placement Integration Tests', () => {
 
   describe('Tasking Order Placement - Success Cases', () => {
     it('should place tasking order with complete parameters', async () => {
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: mockTaskingOrder,
         status: 200,
       });
@@ -213,11 +215,14 @@ describe('Order Placement Integration Tests', () => {
 
       expect(result.orderId).toBe(mockTaskingOrder.orderId);
       expect(result.orderType).toBe('TASKING');
-      expect(mockAxiosInstance.request).toHaveBeenCalledWith(
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/order-tasking',
         expect.objectContaining({
-          method: 'POST',
-          url: '/order-tasking',
+          aoi: mockTaskingOrder.aoi,
+          windowStart: '2025-01-20T00:00:00Z',
+          windowEnd: '2025-01-25T23:59:59Z',
         }),
+        undefined,
       );
     });
 
@@ -231,7 +236,7 @@ describe('Order Placement Integration Tests', () => {
         sarProductTypes: ['SICD', 'GEC'],
       };
 
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: sarOrder,
         status: 200,
       });
@@ -259,7 +264,7 @@ describe('Order Placement Integration Tests', () => {
         providerWindowId: '987e6543-e21b-43d1-b789-123456789abc',
       };
 
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: orderWithWindowId,
         status: 200,
       });
@@ -284,7 +289,7 @@ describe('Order Placement Integration Tests', () => {
         priorityItem: true,
       };
 
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: priorityOrder,
         status: 200,
       });
@@ -309,7 +314,7 @@ describe('Order Placement Integration Tests', () => {
         requiredProvider: 'PLANET',
       };
 
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: providerOrder,
         status: 200,
       });
@@ -337,7 +342,7 @@ describe('Order Placement Integration Tests', () => {
         data: mockValidationError,
       };
       (validationError as any).isAxiosError = true;
-      mockAxiosInstance.request.mockRejectedValue(validationError);
+      mockAxiosInstance.post.mockRejectedValue(validationError);
 
       await expect(
         placeArchiveOrder(client, {
@@ -356,7 +361,7 @@ describe('Order Placement Integration Tests', () => {
         data: mockAuthenticationError,
       };
       (authError as any).isAxiosError = true;
-      mockAxiosInstance.request.mockRejectedValue(authError);
+      mockAxiosInstance.post.mockRejectedValue(authError);
 
       await expect(
         placeArchiveOrder(client, {
@@ -376,7 +381,7 @@ describe('Order Placement Integration Tests', () => {
         headers: { 'retry-after': '60' },
       };
       (rateLimitError as any).isAxiosError = true;
-      mockAxiosInstance.request.mockRejectedValue(rateLimitError);
+      mockAxiosInstance.post.mockRejectedValue(rateLimitError);
 
       await expect(
         placeTaskingOrder(client, {
@@ -398,7 +403,7 @@ describe('Order Placement Integration Tests', () => {
         data: mockServerError,
       };
       (serverError as any).isAxiosError = true;
-      mockAxiosInstance.request.mockRejectedValue(serverError);
+      mockAxiosInstance.post.mockRejectedValue(serverError);
 
       await expect(
         placeArchiveOrder(client, {
@@ -425,7 +430,7 @@ describe('Order Placement Integration Tests', () => {
         },
       };
       (validationError as any).isAxiosError = true;
-      mockAxiosInstance.request.mockRejectedValue(validationError);
+      mockAxiosInstance.post.mockRejectedValue(validationError);
 
       await expect(
         placeArchiveOrder(client, {
@@ -445,14 +450,14 @@ describe('Order Placement Integration Tests', () => {
 
   describe('Edge Cases', () => {
     it('should handle minimal archive order parameters', async () => {
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: mockArchiveOrder,
         status: 200,
       });
 
       const result = await placeArchiveOrder(client, {
         aoi: validWKTPolygonLarge,
-        archiveId: 'test-archive',
+        archiveId: 'db4794dd-da6a-45b4-ac6e-b9e50e36bb29',
         deliveryDriver: DeliveryDriver.S3,
         deliveryParams: mockS3DeliveryParams,
       });
@@ -467,10 +472,10 @@ describe('Order Placement Integration Tests', () => {
         webhookUrl: 'https://example.com/webhook',
         priorityItem: true,
         requiredProvider: 'PLANET',
-        providerWindowId: 'test-window-id',
+        providerWindowId: '987e6543-e21b-43d1-b789-123456789abc',
       };
 
-      mockAxiosInstance.request.mockResolvedValue({
+      mockAxiosInstance.post.mockResolvedValue({
         data: completeOrder,
         status: 200,
       });
@@ -487,7 +492,7 @@ describe('Order Placement Integration Tests', () => {
         webhookUrl: 'https://example.com/webhook',
         priorityItem: true,
         requiredProvider: 'PLANET',
-        providerWindowId: 'test-window-id',
+        providerWindowId: '987e6543-e21b-43d1-b789-123456789abc',
       });
 
       expect(result).toBeDefined();

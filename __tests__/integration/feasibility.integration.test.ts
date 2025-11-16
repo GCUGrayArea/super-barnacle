@@ -302,7 +302,7 @@ describe('Feasibility Integration Tests', () => {
         status: 200,
       });
 
-      const result = await service.getFeasibilityById('non-existent-id');
+      const result = await service.getFeasibilityById('00000000-0000-0000-0000-000000000000');
 
       expect(result).toBeNull();
     });

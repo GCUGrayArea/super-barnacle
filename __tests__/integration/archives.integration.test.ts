@@ -85,6 +85,7 @@ describe('Archive Search Integration Tests', () => {
           fromDate: '2025-01-01T00:00:00Z',
           toDate: '2025-01-31T23:59:59Z',
         }),
+        undefined,
       );
     });
 
@@ -104,6 +105,7 @@ describe('Archive Search Integration Tests', () => {
         expect.objectContaining({
           aoi: validWKTPolygon,
         }),
+        undefined,
       );
     });
 
@@ -189,7 +191,7 @@ describe('Archive Search Integration Tests', () => {
 
       const result = await searchArchives(client, {
         aoi: validWKTPolygon,
-        providers: [Provider.Planet, Provider.Maxar],
+        providers: [Provider.Planet, Provider.Satellogic],
       });
 
       expect(result.archives).toBeDefined();
@@ -207,7 +209,7 @@ describe('Archive Search Integration Tests', () => {
 
       expect(result.archiveId).toBe(mockArchive.archiveId);
       expect(result.provider).toBe(Provider.Satellogic);
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith(`/archives/${mockArchive.archiveId}`);
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(`/archives/${mockArchive.archiveId}`, undefined);
     });
 
     it('should retrieve open data archive details', async () => {
@@ -398,6 +400,7 @@ describe('Archive Search Integration Tests', () => {
           fromDate: '2024-01-01T00:00:00Z',
           toDate: '2024-12-31T23:59:59Z',
         }),
+        undefined,
       );
     });
   });
