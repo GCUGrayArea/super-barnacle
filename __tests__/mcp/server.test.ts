@@ -6,6 +6,7 @@
 jest.mock('@modelcontextprotocol/sdk/server/index.js', () => ({
   Server: jest.fn().mockImplementation(() => ({
     connect: jest.fn(),
+    setRequestHandler: jest.fn(),
     oninitialized: undefined,
   })),
 }));
