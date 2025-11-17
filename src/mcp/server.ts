@@ -15,6 +15,9 @@ import { logger } from '../lib/logger.js';
 import { MCPServerConfig } from './config.js';
 import { SkyFiClient } from '../skyfi/client.js';
 import { createConfigFromEnv } from '../skyfi/config.js';
+import { HealthChecker } from '../health/health-check.js';
+import { MetricsCollector } from '../health/metrics.js';
+import { createCloudWatchPublisher } from '../lib/cloudwatch.js';
 
 // Import all MCP tools
 import {
@@ -73,6 +76,8 @@ export class SkyFiMCPServer {
   private mcpServer: Server;
   private skyfiClient: SkyFiClient;
   private transports: Map<string, SSEServerTransport> = new Map();
+  private healthChecker: HealthChecker;
+  private metricsCollector: MetricsCollector;
 
   constructor(config: MCPServerConfig) {
     this.config = config;
@@ -80,6 +85,19 @@ export class SkyFiMCPServer {
     // Initialize SkyFi API client
     const skyfiConfig = createConfigFromEnv();
     this.skyfiClient = new SkyFiClient(skyfiConfig);
+
+    // Initialize CloudWatch publisher (optional)
+    const cloudWatchPublisher = createCloudWatchPublisher();
+
+    // Initialize metrics collector
+    this.metricsCollector = new MetricsCollector(cloudWatchPublisher);
+
+    // Initialize health checker
+    this.healthChecker = new HealthChecker(
+      config.version,
+      this.skyfiClient,
+      this.metricsCollector
+    );
 
     // Initialize MCP server
     this.mcpServer = new Server(
@@ -148,8 +166,13 @@ export class SkyFiMCPServer {
     // Register call_tool handler
     this.mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
+      const startTime = Date.now();
 
       logger.info('Tool call requested', { toolName: name });
+
+      // Record request metric
+      this.metricsCollector.recordRequest(name);
+      this.metricsCollector.recordToolCall(name);
 
       try {
         let result: string | { content: Array<{ type: string; text: string }> };
@@ -214,6 +237,10 @@ export class SkyFiMCPServer {
             throw new Error(`Unknown tool: ${name}`);
         }
 
+        // Record latency
+        const latency = Date.now() - startTime;
+        this.metricsCollector.recordLatency(latency, name);
+
         // If result is already in MCP format, return it; otherwise wrap it
         if (typeof result === 'object' && 'content' in result) {
           return result;
@@ -228,6 +255,14 @@ export class SkyFiMCPServer {
           ],
         };
       } catch (error) {
+        // Record error metric
+        const errorType = error instanceof Error ? error.constructor.name : 'Unknown';
+        this.metricsCollector.recordError(errorType, name);
+
+        // Record latency even for errors
+        const latency = Date.now() - startTime;
+        this.metricsCollector.recordLatency(latency, name);
+
         logger.error('Tool execution error', {
           toolName: name,
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -305,6 +340,9 @@ export class SkyFiMCPServer {
   async stop(): Promise<void> {
     logger.info('Stopping MCP server...');
 
+    // Stop metrics collector
+    this.metricsCollector.stop();
+
     // Close all transports
     for (const [sessionId, transport] of this.transports.entries()) {
       logger.debug('Closing transport', { sessionId });
@@ -351,7 +389,11 @@ export class SkyFiMCPServer {
 
     // Health check endpoint
     if (url === this.config.healthEndpoint && method === 'GET') {
-      this.handleHealthCheck(res);
+      this.handleHealthCheck(res).catch((error) => {
+        logger.error('Health check handler error', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      });
       return;
     }
 
@@ -375,19 +417,45 @@ export class SkyFiMCPServer {
   /**
    * Handle health check requests
    */
-  private handleHealthCheck(res: ServerResponse): void {
-    const health = {
-      status: 'healthy',
-      name: this.config.name,
-      version: this.config.version,
-      timestamp: new Date().toISOString(),
-      transports: this.transports.size,
-    };
+  private async handleHealthCheck(res: ServerResponse): Promise<void> {
+    try {
+      // Perform full health check (with deep checks)
+      const health = await this.healthChecker.fullCheck({
+        includeSkyFiCheck: true,
+        includeMetrics: true,
+        includeDeepCheck: true,
+        timeout: 3000,
+      });
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(health));
+      // Add transport count to response
+      const responseWithTransports = {
+        ...health,
+        activeTransports: this.transports.size,
+      };
 
-    logger.debug('Health check request served', health);
+      // Set HTTP status based on health status
+      const httpStatus = health.status === 'healthy' ? 200 : 503;
+
+      res.writeHead(httpStatus, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(responseWithTransports, null, 2));
+
+      logger.debug('Health check request served', {
+        status: health.status,
+        transports: this.transports.size,
+      });
+    } catch (error) {
+      logger.error('Health check failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          status: 'unhealthy',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        })
+      );
+    }
   }
 
   /**

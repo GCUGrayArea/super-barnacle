@@ -105,4 +105,8 @@ export interface ArchiveSearchResponse {
 export interface ArchiveSearchOptions {
   /** Correlation ID for request tracing */
   correlationId?: string;
+  /** Enable caching for search results (default: true) */
+  enableCache?: boolean;
+  /** Cache TTL in seconds (default: 86400 / 24 hours) */
+  cacheTTL?: number;
 }

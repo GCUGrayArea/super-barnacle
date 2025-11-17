@@ -497,7 +497,8 @@ export class MockSkyFiServer {
       },
     };
 
-    this.mockAdapter.onGet('/pricing').reply(200, response);
+    // Pricing endpoint uses POST, not GET
+    this.mockAdapter.onPost('/pricing').reply(200, response);
   }
 
   /**

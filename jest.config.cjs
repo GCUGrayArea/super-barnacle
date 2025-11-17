@@ -74,6 +74,18 @@ module.exports = {
         },
       },
     ],
+    // Transform .js files from ES module packages
+    '^.+\\.js$': [
+      'ts-jest',
+      {
+        useESM: true,
+        tsconfig: {
+          esModuleInterop: true,
+          allowSyntheticDefaultImports: true,
+          module: 'ESNext',
+        },
+      },
+    ],
   },
 
   // Clear mocks between tests

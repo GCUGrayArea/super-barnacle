@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { logger } from '../lib/logger.js';
 import { ValidationError, NotFoundError } from '../lib/errors.js';
 import { SkyFiClient } from './client.js';
+import { archivesCache } from '../db/cache/archives-cache.js';
 import type {
   ArchiveSearchParams,
   ArchiveSearchResponse,
@@ -54,6 +55,8 @@ export async function searchArchives(
   options?: ArchiveSearchOptions,
 ): Promise<ArchiveSearchResponse> {
   const correlationId = options?.correlationId ?? 'archive-search-' + Date.now().toString();
+  const enableCache = options?.enableCache ?? true;
+  const cacheTTL = options?.cacheTTL ?? 86400; // 24 hours default
   const startTime = Date.now();
 
   logger.info('Starting archive search', {
@@ -63,11 +66,27 @@ export async function searchArchives(
     toDate: params.toDate,
     productTypes: params.productTypes,
     resolutions: params.resolutions,
+    cacheEnabled: enableCache,
   });
 
   try {
     // Validate search parameters
     const validatedParams = ArchiveSearchParamsSchema.parse(params);
+
+    // Check cache if enabled
+    if (enableCache) {
+      const cachedResult = await archivesCache.get(validatedParams);
+      if (cachedResult) {
+        const duration = Date.now() - startTime;
+        logger.info('Archive search completed (cache hit)', {
+          correlationId,
+          resultCount: cachedResult.archives.length,
+          hasNextPage: !!cachedResult.nextPage,
+          durationMs: duration,
+        });
+        return cachedResult;
+      }
+    }
 
     // Make API request
     const response = await client.post<ArchiveSearchResponse>('/archives', validatedParams);
@@ -75,8 +94,19 @@ export async function searchArchives(
     // Validate response
     const validatedResponse = ArchiveSearchResponseSchema.parse(response);
 
+    // Store in cache if enabled
+    if (enableCache) {
+      // Don't await - cache storage is fire-and-forget
+      archivesCache.set(validatedParams, validatedResponse, cacheTTL).catch((error) => {
+        logger.warn('Failed to cache archive search results', {
+          correlationId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      });
+    }
+
     const duration = Date.now() - startTime;
-    logger.info('Archive search completed', {
+    logger.info('Archive search completed (API call)', {
       correlationId,
       resultCount: validatedResponse.archives.length,
       hasNextPage: !!validatedResponse.nextPage,

@@ -73,9 +73,7 @@ export class SkyFiClient {
         }
         return response;
       },
-      async (error: AxiosError) => {
-        await this.handleError(error);
-      },
+      (error: AxiosError) => this.handleError(error),
     );
   }
 

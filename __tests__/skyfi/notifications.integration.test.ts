@@ -161,14 +161,14 @@ describe('Notifications Integration Tests', () => {
         webhookUrl: 'https://webhook.example.com/notify',
       };
 
-      const error = {
-        response: {
-          status: 400,
-          data: {
-            detail: 'Invalid webhook URL',
-          },
+      const error = new Error('Invalid webhook URL');
+      (error as any).response = {
+        status: 400,
+        data: {
+          detail: 'Invalid webhook URL',
         },
       };
+      (error as any).isAxiosError = true;
 
       mockAxiosInstance.post.mockRejectedValueOnce(error);
 
@@ -303,14 +303,14 @@ describe('Notifications Integration Tests', () => {
     it('should handle 404 error for non-existent notification', async () => {
       const notificationId = '550e8400-e29b-41d4-a716-446655440099';
 
-      const error = {
-        response: {
-          status: 404,
-          data: {
-            detail: 'Notification not found',
-          },
+      const error = new Error('Notification not found');
+      (error as any).response = {
+        status: 404,
+        data: {
+          detail: 'Notification not found',
         },
       };
+      (error as any).isAxiosError = true;
 
       mockAxiosInstance.get.mockRejectedValueOnce(error);
 
@@ -342,14 +342,14 @@ describe('Notifications Integration Tests', () => {
     it('should handle 404 error when deleting non-existent notification', async () => {
       const notificationId = '550e8400-e29b-41d4-a716-446655440099';
 
-      const error = {
-        response: {
-          status: 404,
-          data: {
-            detail: 'Notification not found',
-          },
+      const error = new Error('Notification not found');
+      (error as any).response = {
+        status: 404,
+        data: {
+          detail: 'Notification not found',
         },
       };
+      (error as any).isAxiosError = true;
 
       mockAxiosInstance.delete.mockRejectedValueOnce(error);
 
@@ -444,14 +444,14 @@ describe('Notifications Integration Tests', () => {
         webhookUrl: 'https://webhook.example.com/notify',
       };
 
-      const error = {
-        response: {
-          status: 429,
-          data: {
-            detail: 'Rate limit exceeded',
-          },
+      const error = new Error('Rate limit exceeded');
+      (error as any).response = {
+        status: 429,
+        data: {
+          detail: 'Rate limit exceeded',
         },
       };
+      (error as any).isAxiosError = true;
 
       mockAxiosInstance.post.mockRejectedValueOnce(error);
 
@@ -459,14 +459,14 @@ describe('Notifications Integration Tests', () => {
     });
 
     it('should handle authentication error', async () => {
-      const error = {
-        response: {
-          status: 401,
-          data: {
-            detail: 'Invalid API key',
-          },
+      const error = new Error('Invalid API key');
+      (error as any).response = {
+        status: 401,
+        data: {
+          detail: 'Invalid API key',
         },
       };
+      (error as any).isAxiosError = true;
 
       mockAxiosInstance.get.mockRejectedValueOnce(error);
 
@@ -479,14 +479,14 @@ describe('Notifications Integration Tests', () => {
         webhookUrl: 'https://webhook.example.com/notify',
       };
 
-      const error = {
-        response: {
-          status: 500,
-          data: {
-            detail: 'Internal server error',
-          },
+      const error = new Error('Internal server error');
+      (error as any).response = {
+        status: 500,
+        data: {
+          detail: 'Internal server error',
         },
       };
+      (error as any).isAxiosError = true;
 
       mockAxiosInstance.post.mockRejectedValueOnce(error);
 

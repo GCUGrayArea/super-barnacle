@@ -46,6 +46,8 @@ export interface ConversationMetadata {
   id: string;
   /** When conversation started */
   startedAt: Date;
+  /** When conversation was created (alias for startedAt) */
+  createdAt: Date;
   /** Last interaction timestamp */
   lastInteractionAt: Date;
   /** Total number of messages exchanged */
@@ -78,10 +80,12 @@ export class Conversation {
       debug: config.debug ?? false,
     };
 
+    const now = new Date();
     this.metadata = {
       id: this.generateConversationId(),
-      startedAt: new Date(),
-      lastInteractionAt: new Date(),
+      startedAt: now,
+      createdAt: now,  // Alias for startedAt
+      lastInteractionAt: now,
       messageCount: 0,
       totalTokens: 0,
     };
