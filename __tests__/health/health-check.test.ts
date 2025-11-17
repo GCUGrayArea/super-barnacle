@@ -108,11 +108,11 @@ describe('HealthChecker', () => {
     });
 
     it('should timeout SkyFi check if it takes too long', async () => {
-      // Mock slow SkyFi API response
+      // Mock slow SkyFi API response (300ms - longer than timeout but not excessively long)
       mockSkyFiClient.getPricing.mockImplementation(
         () =>
           new Promise((resolve) =>
-            setTimeout(() => resolve({ basePrice: 100, currency: 'USD' } as any), 10000)
+            setTimeout(() => resolve({ basePrice: 100, currency: 'USD' } as any), 300)
           )
       );
 
@@ -124,6 +124,9 @@ describe('HealthChecker', () => {
       expect(result.status).toBe(HealthStatus.DEGRADED);
       expect(result.components.skyfi.status).toBe(HealthStatus.UNHEALTHY);
       expect(result.components.skyfi.message).toContain('timeout');
+
+      // Wait for the mock's setTimeout to complete to prevent open handles
+      await new Promise((resolve) => setTimeout(resolve, 250));
     });
 
     it('should skip SkyFi check when disabled', async () => {

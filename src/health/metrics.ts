@@ -69,6 +69,7 @@ export class MetricsCollector {
   private windowDuration: number; // milliseconds
   private startTime: Date;
   private publishInterval?: NodeJS.Timeout;
+  private windowRotationInterval?: NodeJS.Timeout;
 
   constructor(
     cloudWatchPublisher?: CloudWatchPublisher,
@@ -271,6 +272,11 @@ export class MetricsCollector {
       this.publishInterval = undefined;
     }
 
+    if (this.windowRotationInterval) {
+      clearInterval(this.windowRotationInterval);
+      this.windowRotationInterval = undefined;
+    }
+
     logger.info('Metrics collector stopped');
   }
 
@@ -302,7 +308,7 @@ export class MetricsCollector {
    * Start automatic window rotation
    */
   private startWindowRotation(): void {
-    setInterval(() => {
+    this.windowRotationInterval = setInterval(() => {
       logger.debug('Rotating metrics window', {
         previousWindow: this.getCurrentWindowMetrics(),
       });

@@ -200,16 +200,22 @@ export class HealthChecker {
       };
     }
 
+    let timeoutId: NodeJS.Timeout | undefined;
     try {
       // Attempt a simple API call with timeout
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Health check timeout')), timeout);
+        timeoutId = setTimeout(() => reject(new Error('Health check timeout')), timeout);
       });
 
       // Try to get pricing info as a lightweight connectivity test
       const checkPromise = this.skyfiClient.getPricing({});
 
       await Promise.race([checkPromise, timeoutPromise]);
+
+      // Clear timeout if check completed successfully
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
 
       const responseTime = Date.now() - startTime;
 
@@ -220,6 +226,11 @@ export class HealthChecker {
         lastChecked: timestamp,
       };
     } catch (error) {
+      // Clear timeout if it's still running
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
+
       const responseTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
