@@ -154,14 +154,11 @@ describe('Feasibility Integration Tests', () => {
     });
 
     it('should retry on rate limit errors', async () => {
+      // Import RateLimitError to use in test
+      const { RateLimitError } = require('../../src/lib/errors');
+
       // First call returns rate limit error, second call succeeds
-      const rateLimitError = new Error('Rate limited');
-      (rateLimitError as any).response = {
-        status: 429,
-        data: { detail: 'Rate limit exceeded' },
-        headers: { 'retry-after': '1' },
-      };
-      (rateLimitError as any).isAxiosError = true;
+      const rateLimitError = new RateLimitError('Rate limit exceeded', 1);
 
       mockAxiosInstance.post
         .mockRejectedValueOnce(rateLimitError)
