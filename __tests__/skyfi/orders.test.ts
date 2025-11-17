@@ -47,7 +47,7 @@ describe('placeArchiveOrder', () => {
       },
     };
 
-    const result = await placeArchiveOrder(params, mockClient);
+    const result = await placeArchiveOrder(mockClient, params);
 
     expect(result).toEqual(mockResponse);
     expect(mockClient.post).toHaveBeenCalledWith('/order-archive', params);
@@ -68,7 +68,7 @@ describe('placeArchiveOrder', () => {
       archiveId: 'a66f7b5e-215f-44af-981a-500d89ee3f43',
     };
 
-    const result = await placeArchiveOrder(params, mockClient);
+    const result = await placeArchiveOrder(mockClient, params);
 
     expect(result).toEqual(mockResponse);
     expect(mockClient.post).toHaveBeenCalledWith('/order-archive', params);
@@ -80,7 +80,7 @@ describe('placeArchiveOrder', () => {
       archiveId: 'not-a-uuid',
     };
 
-    await expect(placeArchiveOrder(params, mockClient)).rejects.toThrow(ValidationError);
+    await expect(placeArchiveOrder(mockClient, params)).rejects.toThrow(ValidationError);
     expect(mockClient.post).not.toHaveBeenCalled();
   });
 
@@ -90,7 +90,7 @@ describe('placeArchiveOrder', () => {
       archiveId: 'a66f7b5e-215f-44af-981a-500d89ee3f43',
     };
 
-    await expect(placeArchiveOrder(params, mockClient)).rejects.toThrow(ValidationError);
+    await expect(placeArchiveOrder(mockClient, params)).rejects.toThrow(ValidationError);
     expect(mockClient.post).not.toHaveBeenCalled();
   });
 
@@ -101,7 +101,7 @@ describe('placeArchiveOrder', () => {
       webhookUrl: 'http://insecure-url.com/webhook',
     };
 
-    await expect(placeArchiveOrder(params, mockClient)).rejects.toThrow();
+    await expect(placeArchiveOrder(mockClient, params)).rejects.toThrow();
     expect(mockClient.post).not.toHaveBeenCalled();
   });
 
@@ -122,7 +122,7 @@ describe('placeArchiveOrder', () => {
       webhookUrl: 'https://secure-url.com/webhook',
     };
 
-    const result = await placeArchiveOrder(params, mockClient);
+    const result = await placeArchiveOrder(mockClient, params);
     expect(result).toEqual(mockResponse);
   });
 
@@ -190,7 +190,7 @@ describe('placeTaskingOrder', () => {
       },
     };
 
-    const result = await placeTaskingOrder(params, mockClient);
+    const result = await placeTaskingOrder(mockClient, params);
 
     expect(result).toEqual(mockResponse);
     expect(mockClient.post).toHaveBeenCalledWith('/order-tasking', params);
@@ -205,7 +205,7 @@ describe('placeTaskingOrder', () => {
       resolution: Resolution.High,
     };
 
-    await expect(placeTaskingOrder(params, mockClient)).rejects.toThrow(ValidationError);
+    await expect(placeTaskingOrder(mockClient, params)).rejects.toThrow(ValidationError);
     expect(mockClient.post).not.toHaveBeenCalled();
   });
 
@@ -218,7 +218,7 @@ describe('placeTaskingOrder', () => {
       resolution: Resolution.High,
     };
 
-    await expect(placeTaskingOrder(params, mockClient)).rejects.toThrow(ValidationError);
+    await expect(placeTaskingOrder(mockClient, params)).rejects.toThrow(ValidationError);
     expect(mockClient.post).not.toHaveBeenCalled();
   });
 
@@ -247,7 +247,7 @@ describe('placeTaskingOrder', () => {
       maxOffNadirAngle: 30,
     };
 
-    const result = await placeTaskingOrder(params, mockClient);
+    const result = await placeTaskingOrder(mockClient, params);
     expect(result).toEqual(mockResponse);
   });
 
@@ -261,7 +261,7 @@ describe('placeTaskingOrder', () => {
       maxCloudCoveragePercent: 150,
     };
 
-    await expect(placeTaskingOrder(params, mockClient)).rejects.toThrow(ValidationError);
+    await expect(placeTaskingOrder(mockClient, params)).rejects.toThrow(ValidationError);
     expect(mockClient.post).not.toHaveBeenCalled();
   });
 
@@ -275,7 +275,7 @@ describe('placeTaskingOrder', () => {
       maxOffNadirAngle: 60,
     };
 
-    await expect(placeTaskingOrder(params, mockClient)).rejects.toThrow(ValidationError);
+    await expect(placeTaskingOrder(mockClient, params)).rejects.toThrow(ValidationError);
     expect(mockClient.post).not.toHaveBeenCalled();
   });
 
@@ -302,7 +302,7 @@ describe('placeTaskingOrder', () => {
       providerWindowId: '323e4567-e89b-12d3-a456-426614174003',
     };
 
-    const result = await placeTaskingOrder(params, mockClient);
+    const result = await placeTaskingOrder(mockClient, params);
     expect(result).toEqual(mockResponse);
   });
 });
