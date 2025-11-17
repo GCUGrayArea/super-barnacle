@@ -21,7 +21,6 @@ import type {
   OrderInfoResponse,
   ArchiveOrderInfoResponse,
   TaskingOrderInfoResponse,
-  ListOrdersResponse,
 } from '../../types/skyfi-api.js';
 
 /**
@@ -162,7 +161,7 @@ export class OrdersCache {
             : undefined,
         total_cost_usd: orderData.orderCost ? orderData.orderCost / 100 : undefined,
         ordered_at: orderData.createdAt ? new Date(orderData.createdAt) : undefined,
-        completed_at: orderData.status === 'DELIVERED' ? new Date() : undefined,
+        completed_at: orderData.status === 'DELIVERY_COMPLETED' ? new Date() : undefined,
       };
 
       // Insert or update cache entry
