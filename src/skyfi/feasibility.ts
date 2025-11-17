@@ -24,6 +24,19 @@ import {
   validatePassPredictionResponse,
   validateFeasibilityCheckResponse,
 } from '../schemas/feasibility.schemas.js';
+import { feasibilityCache, DEFAULT_FEASIBILITY_TTL } from '../db/cache/feasibility-cache.js';
+
+/**
+ * Extended options for feasibility operations with caching support
+ */
+export interface FeasibilityCacheOptions extends FeasibilityOptions {
+  /** Enable caching (default: true) */
+  enableCache?: boolean;
+  /** Bypass cache and force fresh data from API (default: false) */
+  bypassCache?: boolean;
+  /** Cache TTL in seconds (default: 86400 = 24 hours) */
+  cacheTTL?: number;
+}
 
 /**
  * Feasibility service for checking task feasibility and predicting satellite passes
@@ -38,7 +51,7 @@ export class FeasibilityService {
    * This helps plan tasking orders by showing when satellites will be overhead.
    *
    * @param request - Pass prediction parameters
-   * @param options - Optional request options
+   * @param options - Optional request options with caching support
    * @returns Pass prediction results with satellite opportunities
    * @throws {ValidationError} If request parameters are invalid
    * @throws {SkyFiAPIError} If API request fails
@@ -62,7 +75,7 @@ export class FeasibilityService {
    */
   async predictPasses(
     request: PassPredictionRequest,
-    options?: FeasibilityOptions,
+    options?: FeasibilityCacheOptions,
   ): Promise<PassPredictionResponse> {
     // Validate request
     try {
@@ -79,13 +92,38 @@ export class FeasibilityService {
       throw error;
     }
 
+    const enableCache = options?.enableCache !== false; // Default: true
+    const bypassCache = options?.bypassCache === true; // Default: false
+    const cacheTTL = options?.cacheTTL ?? DEFAULT_FEASIBILITY_TTL;
+
     logger.info('Predicting satellite passes', {
       correlationId: options?.correlationId,
       fromDate: request.fromDate,
       toDate: request.toDate,
       productTypes: request.productTypes,
       resolutions: request.resolutions,
+      enableCache,
+      bypassCache,
     });
+
+    // Try cache first if enabled and not bypassed
+    if (enableCache && !bypassCache) {
+      try {
+        const cachedResult = await feasibilityCache.get(request);
+        if (cachedResult && 'passes' in cachedResult) {
+          logger.info('Pass prediction retrieved from cache', {
+            correlationId: options?.correlationId,
+            passCount: cachedResult.passes.length,
+          });
+          return cachedResult as PassPredictionResponse;
+        }
+      } catch (cacheError) {
+        logger.warn('Cache lookup failed, falling back to API', {
+          correlationId: options?.correlationId,
+          error: cacheError instanceof Error ? cacheError.message : 'Unknown error',
+        });
+      }
+    }
 
     const startTime = Date.now();
 
@@ -106,6 +144,16 @@ export class FeasibilityService {
       durationMs: duration,
     });
 
+    // Store in cache if enabled
+    if (enableCache) {
+      feasibilityCache.set(request, validatedResponse, cacheTTL).catch((error) => {
+        logger.warn('Failed to cache pass prediction results', {
+          correlationId: options?.correlationId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      });
+    }
+
     return validatedResponse;
   }
 
@@ -117,7 +165,7 @@ export class FeasibilityService {
    * available capture opportunities with provider_window_id for ordering.
    *
    * @param request - Feasibility check parameters
-   * @param options - Optional request options
+   * @param options - Optional request options with caching support
    * @returns Feasibility check result with score and opportunities
    * @throws {ValidationError} If request parameters are invalid
    * @throws {SkyFiAPIError} If API request fails
@@ -142,7 +190,7 @@ export class FeasibilityService {
    */
   async checkFeasibility(
     request: FeasibilityCheckRequest,
-    options?: FeasibilityOptions,
+    options?: FeasibilityCacheOptions,
   ): Promise<FeasibilityCheckResponse> {
     // Validate request
     try {
@@ -159,6 +207,10 @@ export class FeasibilityService {
       throw error;
     }
 
+    const enableCache = options?.enableCache !== false; // Default: true
+    const bypassCache = options?.bypassCache === true; // Default: false
+    const cacheTTL = options?.cacheTTL ?? DEFAULT_FEASIBILITY_TTL;
+
     logger.info('Checking task feasibility', {
       correlationId: options?.correlationId,
       productType: request.productType,
@@ -166,7 +218,29 @@ export class FeasibilityService {
       startDate: request.startDate,
       endDate: request.endDate,
       requiredProvider: request.requiredProvider,
+      enableCache,
+      bypassCache,
     });
+
+    // Try cache first if enabled and not bypassed
+    if (enableCache && !bypassCache) {
+      try {
+        const cachedResult = await feasibilityCache.get(request);
+        if (cachedResult && 'id' in cachedResult) {
+          logger.info('Feasibility check retrieved from cache', {
+            correlationId: options?.correlationId,
+            feasibilityId: cachedResult.id,
+            score: cachedResult.overallScore?.feasibility,
+          });
+          return cachedResult as FeasibilityCheckResponse;
+        }
+      } catch (cacheError) {
+        logger.warn('Cache lookup failed, falling back to API', {
+          correlationId: options?.correlationId,
+          error: cacheError instanceof Error ? cacheError.message : 'Unknown error',
+        });
+      }
+    }
 
     const startTime = Date.now();
 
@@ -187,6 +261,17 @@ export class FeasibilityService {
       score: validatedResponse.overallScore?.feasibility,
       durationMs: duration,
     });
+
+    // Store in cache if enabled
+    if (enableCache) {
+      feasibilityCache.set(request, validatedResponse, cacheTTL).catch((error) => {
+        logger.warn('Failed to cache feasibility check results', {
+          correlationId: options?.correlationId,
+          feasibilityId: validatedResponse.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      });
+    }
 
     return validatedResponse;
   }
@@ -282,13 +367,13 @@ export function createFeasibilityService(client: SkyFiClient): FeasibilityServic
  *
  * @param client - SkyFi API client
  * @param request - Pass prediction parameters
- * @param options - Optional request options
+ * @param options - Optional request options with caching support
  * @returns Pass prediction results
  */
 export async function predictPasses(
   client: SkyFiClient,
   request: PassPredictionRequest,
-  options?: FeasibilityOptions,
+  options?: FeasibilityCacheOptions,
 ): Promise<PassPredictionResponse> {
   const service = new FeasibilityService(client);
   return service.predictPasses(request, options);
@@ -299,13 +384,13 @@ export async function predictPasses(
  *
  * @param client - SkyFi API client
  * @param request - Feasibility check parameters
- * @param options - Optional request options
+ * @param options - Optional request options with caching support
  * @returns Feasibility check result
  */
 export async function checkFeasibility(
   client: SkyFiClient,
   request: FeasibilityCheckRequest,
-  options?: FeasibilityOptions,
+  options?: FeasibilityCacheOptions,
 ): Promise<FeasibilityCheckResponse> {
   const service = new FeasibilityService(client);
   return service.checkFeasibility(request, options);
