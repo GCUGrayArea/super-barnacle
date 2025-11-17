@@ -8,12 +8,11 @@
 
 import { newDb } from 'pg-mem';
 import type { IMemoryDb } from 'pg-mem';
-import fs from 'fs/promises';
-import path from 'path';
 import { ArchivesCache } from '../../../src/db/cache/archives-cache.js';
 import { generateCacheKey } from '../../../src/lib/cache-key.js';
 import type { ArchiveSearchParams, ArchiveSearchResponse } from '../../../src/types/archives.js';
 import { ProductType, Provider, Resolution } from '../../../src/types/skyfi-api.js';
+import { setupCacheTestSchema } from '../../helpers/pg-mem-schema.js';
 
 // Mock the database client to use pg-mem
 jest.mock('../../../src/db/client.js', () => {
@@ -112,15 +111,11 @@ describe('ArchivesCache', () => {
   };
 
   beforeAll(async () => {
-    // Load and execute the schema migration
-    const migrationsPath = path.join(process.cwd(), 'migrations/001_initial_schema.sql');
-    const sql = await fs.readFile(migrationsPath, 'utf-8');
-
     // Create in-memory database
     db = newDb();
 
-    // Execute schema
-    await db.public.none(sql);
+    // Load and execute the schema migration (with pg-mem compatibility)
+    await setupCacheTestSchema(db);
 
     // Set the database for the mock
     __setMemDb(db);

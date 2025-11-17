@@ -5,7 +5,7 @@
  * full checks with SkyFi API connectivity, and metrics integration.
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { HealthChecker, HealthStatus } from '../../src/health/health-check.js';
 import { MetricsCollector } from '../../src/health/metrics.js';
 import { SkyFiClient } from '../../src/skyfi/client.js';
@@ -30,6 +30,13 @@ describe('HealthChecker', () => {
 
     // Create health checker
     healthChecker = new HealthChecker(version, mockSkyFiClient, metricsCollector);
+  });
+
+  afterEach(() => {
+    // Clean up metrics collector to prevent test hangs
+    if (metricsCollector) {
+      metricsCollector.stop();
+    }
   });
 
   describe('basicCheck', () => {

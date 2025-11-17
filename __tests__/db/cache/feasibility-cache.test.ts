@@ -8,8 +8,6 @@
 
 import { newDb } from 'pg-mem';
 import type { IMemoryDb } from 'pg-mem';
-import fs from 'fs/promises';
-import path from 'path';
 import { FeasibilityCache, DEFAULT_FEASIBILITY_TTL } from '../../../src/db/cache/feasibility-cache.js';
 import type {
   FeasibilityCheckRequest,
@@ -18,6 +16,7 @@ import type {
   PassPredictionResponse,
 } from '../../../src/types/feasibility.js';
 import { ProductType, Resolution, Provider } from '../../../src/types/skyfi-api.js';
+import { setupCacheTestSchema } from '../../helpers/pg-mem-schema.js';
 
 // Mock the database client to use pg-mem
 jest.mock('../../../src/db/client.js', () => {
@@ -164,15 +163,11 @@ describe('FeasibilityCache', () => {
   };
 
   beforeAll(async () => {
-    // Load and execute the schema migration
-    const migrationsPath = path.join(process.cwd(), 'migrations/001_initial_schema.sql');
-    const sql = await fs.readFile(migrationsPath, 'utf-8');
-
     // Create in-memory database
     db = newDb();
 
-    // Execute schema
-    await db.public.none(sql);
+    // Load and execute the schema migration (with pg-mem compatibility)
+    await setupCacheTestSchema(db);
 
     // Set the database for the mock
     __setMemDb(db);
