@@ -141,7 +141,7 @@ export class OrdersCache {
       const cacheData: CreateOrderCache = {
         order_id: orderId,
         order_type: orderData.orderType as OrderType,
-        order_status: orderData.status as unknown as OrderStatus,
+        order_status: (orderData.status as unknown as OrderStatus) || ('PENDING' as OrderStatus),
         order_data: orderData as unknown as Record<string, unknown>,
         user_reference: orderData.label || orderData.orderLabel || undefined,
         aoi_wkt: orderData.aoi || undefined,

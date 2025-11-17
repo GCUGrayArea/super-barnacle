@@ -129,7 +129,15 @@ export class HealthChecker {
     let skyfiHealth: ComponentHealth;
     if (fullConfig.includeSkyFiCheck && this.skyfiClient) {
       skyfiHealth = await this.checkSkyFiConnectivity(fullConfig.timeout);
+    } else if (fullConfig.includeSkyFiCheck && !this.skyfiClient) {
+      // If check is requested but client not initialized, report degraded
+      skyfiHealth = {
+        status: HealthStatus.DEGRADED,
+        message: 'SkyFi client not initialized',
+        lastChecked: timestamp,
+      };
     } else {
+      // Check not requested
       skyfiHealth = {
         status: HealthStatus.HEALTHY,
         message: 'Not checked',
