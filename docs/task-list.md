@@ -1,8 +1,8 @@
 # Task List for SkyFi MCP
 
 **Project:** SkyFi Model Context Protocol Server and Demo Agent
-**Last Updated:** 2025-11-16
-**Total PRs:** 35 organized into 11 dependency blocks (32 Complete, 3 Remaining)
+**Last Updated:** 2025-11-17
+**Total PRs:** 35 organized into 11 dependency blocks (34 Complete, 1 Remaining)
 
 ---
 
@@ -808,7 +808,7 @@ These tests validate the full integration stack. They're slower but catch integr
 ---
 
 ### PR-027: End-to-End Tests for Demo Agent
-**Status:** New
+**Status:** Complete ✅
 **Dependencies:** PR-021, PR-022
 **Priority:** Medium
 
@@ -897,7 +897,7 @@ Ensure cache keys are deterministic and account for all search parameters.
 ---
 
 ### PR-030: Cache Implementation for Orders and Feasibility
-**Status:** New
+**Status:** Complete ✅
 **Dependencies:** PR-009, PR-010, PR-028
 **Priority:** Medium
 
@@ -1016,7 +1016,7 @@ Delivery configuration is often a stumbling block. Provide clear, copy-paste exa
 ---
 
 ### PR-034: Demo Agent Documentation
-**Status:** New
+**Status:** Complete ✅
 **Dependencies:** PR-021, PR-022
 **Priority:** Medium
 
