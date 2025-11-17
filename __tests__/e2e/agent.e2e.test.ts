@@ -198,9 +198,65 @@ describe('Demo Agent E2E Tests', () => {
       mockSkyFi.mockGetPricing();
       mockSkyFi.mockArchiveOrder('order-123');
 
-      // Setup mock OpenAI responses
+      // Setup mock OpenAI responses - Tool results FIRST to prevent loops
+      // After search
       mockOpenAI.addMockResponse(
-        matchAll(matchMessageCount(2, 'user'), matchLastUserMessage('search')),
+        (messages) => {
+          const lastMsg = messages[messages.length - 1];
+          return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'search_satellite_archives';
+        },
+        {
+          content: 'I found archive imagery matching your criteria.',
+          finishReason: 'stop',
+        }
+      );
+
+      // After get archive details
+      mockOpenAI.addMockResponse(
+        (messages) => {
+          const lastMsg = messages[messages.length - 1];
+          return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'get_archive_details';
+        },
+        {
+          content: 'This archive has very high resolution (0.7m) with 5% cloud cover.',
+          finishReason: 'stop',
+        }
+      );
+
+      // After get pricing
+      mockOpenAI.addMockResponse(
+        (messages) => {
+          const lastMsg = messages[messages.length - 1];
+          return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'get_pricing_info';
+        },
+        {
+          content: 'The pricing for this imagery is $5 per square kilometer.',
+          finishReason: 'stop',
+        }
+      );
+
+      // After order
+      mockOpenAI.addMockResponse(
+        (messages) => {
+          const lastMsg = messages[messages.length - 1];
+          return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'order_archive_imagery';
+        },
+        {
+          content: 'Order placed successfully! Your order ID is order-123.',
+          finishReason: 'stop',
+        }
+      );
+
+      // Initial search (user message 1)
+      mockOpenAI.addMockResponse(
+        (messages) => {
+          const userMsgs = messages.filter((m) => m.role === 'user');
+          const lastMsg = messages[messages.length - 1];
+          return userMsgs.length === 1 &&
+                 lastMsg?.role === 'user' &&
+                 typeof lastMsg.content === 'string' &&
+                 lastMsg.content.toLowerCase().includes('search');
+        },
         {
           content: null,
           toolCalls: [
@@ -217,16 +273,16 @@ describe('Demo Agent E2E Tests', () => {
         }
       );
 
+      // Get archive details (user message 2)
       mockOpenAI.addMockResponse(
-        matchLastToolCall('search_satellite_archives'),
-        {
-          content: 'I found archive imagery matching your criteria.',
-          finishReason: 'stop',
-        }
-      );
-
-      mockOpenAI.addMockResponse(
-        matchLastUserMessage('354b783d'),
+        (messages) => {
+          const userMsgs = messages.filter((m) => m.role === 'user');
+          const lastMsg = messages[messages.length - 1];
+          return userMsgs.length === 2 &&
+                 lastMsg?.role === 'user' &&
+                 typeof lastMsg.content === 'string' &&
+                 lastMsg.content.includes('354b783d');
+        },
         {
           content: null,
           toolCalls: [
@@ -241,16 +297,16 @@ describe('Demo Agent E2E Tests', () => {
         }
       );
 
+      // Get pricing (user message 3)
       mockOpenAI.addMockResponse(
-        matchLastToolCall('get_archive_details'),
-        {
-          content: 'This archive has very high resolution (0.7m) with 5% cloud cover.',
-          finishReason: 'stop',
-        }
-      );
-
-      mockOpenAI.addMockResponse(
-        matchLastUserMessage('cost'),
+        (messages) => {
+          const userMsgs = messages.filter((m) => m.role === 'user');
+          const lastMsg = messages[messages.length - 1];
+          return userMsgs.length === 3 &&
+                 lastMsg?.role === 'user' &&
+                 typeof lastMsg.content === 'string' &&
+                 lastMsg.content.toLowerCase().includes('cost');
+        },
         {
           content: null,
           toolCalls: [
@@ -263,16 +319,16 @@ describe('Demo Agent E2E Tests', () => {
         }
       );
 
+      // Place order (user message 4)
       mockOpenAI.addMockResponse(
-        matchLastToolCall('get_pricing_info'),
-        {
-          content: 'The pricing for this imagery is $5 per square kilometer.',
-          finishReason: 'stop',
-        }
-      );
-
-      mockOpenAI.addMockResponse(
-        matchLastUserMessage('order'),
+        (messages) => {
+          const userMsgs = messages.filter((m) => m.role === 'user');
+          const lastMsg = messages[messages.length - 1];
+          return userMsgs.length === 4 &&
+                 lastMsg?.role === 'user' &&
+                 typeof lastMsg.content === 'string' &&
+                 lastMsg.content.toLowerCase().includes('order');
+        },
         {
           content: null,
           toolCalls: [
@@ -293,14 +349,6 @@ describe('Demo Agent E2E Tests', () => {
         }
       );
 
-      mockOpenAI.addMockResponse(
-        matchLastToolCall('order_archive_imagery'),
-        {
-          content: 'Order placed successfully! Your order ID is order-123.',
-          finishReason: 'stop',
-        }
-      );
-
       const agent = new SkyFiAgent({
         openaiClient: mockOpenAI,
         toolExecutor,
@@ -311,10 +359,16 @@ describe('Demo Agent E2E Tests', () => {
       const messages = multiStepOrderConversation.userMessages;
 
       const response1 = await agent.chat(messages[0]);
+      if (!response1.success) {
+        console.log('Response1 failed:', response1.error, response1.message);
+      }
       expect(response1.success).toBe(true);
       expect(response1.toolCalls?.[0].name).toBe('search_satellite_archives');
 
       const response2 = await agent.chat(messages[1]);
+      if (!response2.success) {
+        throw new Error(`Response2 failed - Error: ${response2.error}, Message: ${response2.message?.substring(0, 200)}`);
+      }
       expect(response2.success).toBe(true);
       expect(response2.toolCalls?.[0].name).toBe('get_archive_details');
 
@@ -353,6 +407,9 @@ describe('Demo Agent E2E Tests', () => {
 
       // Message 1: Check feasibility
       const response1 = await agent.chat(userMessages[0]);
+      if (!response1.success) {
+        throw new Error(`Response failed - Error: ${response1.error}, Message: ${response1.message?.substring(0, 200)}`);
+      }
       expect(response1.success).toBe(true);
       expect(response1.toolCalls).toBeDefined();
       expect(response1.toolCalls?.[0].name).toBe('check_tasking_feasibility');
@@ -376,7 +433,11 @@ describe('Demo Agent E2E Tests', () => {
       mockSkyFi.mockFeasibilityCheck(false);
 
       mockOpenAI.addMockResponse(
-        matchLastUserMessage('feasible'),
+        (messages) => {
+          const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+          return lastUserMsg && typeof lastUserMsg.content === 'string' &&
+                 lastUserMsg.content.toLowerCase().includes('feasible');
+        },
         {
           content: null,
           toolCalls: [
@@ -396,7 +457,10 @@ describe('Demo Agent E2E Tests', () => {
       );
 
       mockOpenAI.addMockResponse(
-        matchLastToolCall('check_tasking_feasibility'),
+        (messages) => {
+          const lastMsg = messages[messages.length - 1];
+          return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'check_tasking_feasibility';
+        },
         {
           content: 'Unfortunately, tasking is not feasible for this location and time window. The feasibility score is only 10%.',
           finishReason: 'stop',
@@ -462,7 +526,11 @@ describe('Demo Agent E2E Tests', () => {
       mockSkyFi.mockGetPricing();
 
       mockOpenAI.addMockResponse(
-        matchLastUserMessage('pricing'),
+        (messages) => {
+          const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+          return lastUserMsg && typeof lastUserMsg.content === 'string' &&
+                 lastUserMsg.content.toLowerCase().includes('pricing');
+        },
         {
           content: null,
           toolCalls: [
@@ -476,7 +544,10 @@ describe('Demo Agent E2E Tests', () => {
       );
 
       mockOpenAI.addMockResponse(
-        matchLastToolCall('get_pricing_info'),
+        (messages) => {
+          const lastMsg = messages[messages.length - 1];
+          return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'get_pricing_info';
+        },
         {
           content: 'The pricing structure varies by product type, resolution, and provider. Very high resolution day imagery costs $5 per square kilometer.',
           finishReason: 'stop',
@@ -484,7 +555,11 @@ describe('Demo Agent E2E Tests', () => {
       );
 
       mockOpenAI.addMockResponse(
-        matchLastUserMessage('budget'),
+        (messages) => {
+          const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+          return lastUserMsg && typeof lastUserMsg.content === 'string' &&
+                 lastUserMsg.content.toLowerCase().includes('budget');
+        },
         {
           content: 'With a $5,000 monthly budget and monitoring 500 km² total area (5 sites × 100 km²), you could afford medium resolution (5-10m) imagery with monthly captures.',
           finishReason: 'stop',
@@ -518,7 +593,11 @@ describe('Demo Agent E2E Tests', () => {
       mockSkyFi.mockGetOrder('550e8400-e29b-41d4-a716-446655440099');
 
       mockOpenAI.addMockResponse(
-        matchLastUserMessage('orders'),
+        (messages) => {
+          const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+          return lastUserMsg && typeof lastUserMsg.content === 'string' &&
+                 lastUserMsg.content.toLowerCase().includes('orders');
+        },
         {
           content: null,
           toolCalls: [
@@ -532,7 +611,10 @@ describe('Demo Agent E2E Tests', () => {
       );
 
       mockOpenAI.addMockResponse(
-        matchLastToolCall('list_orders'),
+        (messages) => {
+          const lastMsg = messages[messages.length - 1];
+          return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'list_orders';
+        },
         {
           content: 'You have 2 orders: one archive order and one tasking order.',
           finishReason: 'stop',
@@ -540,7 +622,11 @@ describe('Demo Agent E2E Tests', () => {
       );
 
       mockOpenAI.addMockResponse(
-        matchLastUserMessage('550e8400'),
+        (messages) => {
+          const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+          return lastUserMsg && typeof lastUserMsg.content === 'string' &&
+                 lastUserMsg.content.includes('550e8400');
+        },
         {
           content: null,
           toolCalls: [
@@ -556,7 +642,10 @@ describe('Demo Agent E2E Tests', () => {
       );
 
       mockOpenAI.addMockResponse(
-        matchLastToolCall('get_order_details'),
+        (messages) => {
+          const lastMsg = messages[messages.length - 1];
+          return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'get_order_details';
+        },
         {
           content: 'Order 550e8400-e29b-41d4-a716-446655440099 is in CREATED status.',
           finishReason: 'stop',
@@ -689,7 +778,10 @@ describe('Demo Agent E2E Tests', () => {
 
       // First message
       mockOpenAI.addMockResponse(
-        matchAll(matchMessageCount(2, 'user')),
+        (messages) => {
+          const userMsgs = messages.filter((m) => m.role === 'user');
+          return userMsgs.length === 1;
+        },
         {
           content: null,
           toolCalls: [
@@ -705,7 +797,10 @@ describe('Demo Agent E2E Tests', () => {
       );
 
       mockOpenAI.addMockResponse(
-        matchLastToolCall('search_satellite_archives'),
+        (messages) => {
+          const lastMsg = messages[messages.length - 1];
+          return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'search_satellite_archives';
+        },
         {
           content: 'I found several archive images in Austin, TX.',
           finishReason: 'stop',
@@ -714,7 +809,10 @@ describe('Demo Agent E2E Tests', () => {
 
       // Second message - should remember context
       mockOpenAI.addMockResponse(
-        matchAll(matchMessageCount(4, 'user')),
+        (messages) => {
+          const userMsgs = messages.filter((m) => m.role === 'user');
+          return userMsgs.length === 2;
+        },
         {
           content: null,
           toolCalls: [
@@ -728,7 +826,10 @@ describe('Demo Agent E2E Tests', () => {
       );
 
       mockOpenAI.addMockResponse(
-        matchLastToolCall('get_pricing_info'),
+        (messages) => {
+          const lastMsg = messages[messages.length - 1];
+          return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'get_pricing_info';
+        },
         {
           content: 'The pricing for those Austin images would be approximately $250.',
           finishReason: 'stop',
@@ -811,7 +912,11 @@ describe('Demo Agent E2E Tests', () => {
       let capturedArgs: any = null;
 
       mockOpenAI.addMockResponse(
-        matchLastUserMessage('search'),
+        (messages) => {
+          const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+          return lastUserMsg && typeof lastUserMsg.content === 'string' &&
+                 lastUserMsg.content.toLowerCase().includes('search');
+        },
         {
           content: null,
           toolCalls: [
@@ -831,7 +936,10 @@ describe('Demo Agent E2E Tests', () => {
       );
 
       mockOpenAI.addMockResponse(
-        matchLastToolCall('search_satellite_archives'),
+        (messages) => {
+          const lastMsg = messages[messages.length - 1];
+          return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'search_satellite_archives';
+        },
         {
           content: 'Search completed.',
           finishReason: 'stop',

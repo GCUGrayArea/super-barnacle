@@ -103,12 +103,15 @@ export class MockOpenAIClient extends OpenAIClient {
 
     // Find matching response
     let mockResponse = this.defaultResponse;
+    let matchedDescription = 'default';
     for (const conditionalResponse of this.mockResponses) {
       if (conditionalResponse.matcher(messages)) {
         mockResponse = conditionalResponse.response;
+        matchedDescription = conditionalResponse.description || 'matched';
         break;
       }
     }
+
 
     // Generate mock completion
     const completion = this.generateMockCompletion(mockResponse);
@@ -314,7 +317,7 @@ export function setupArchiveSearchMocks(client: MockOpenAIClient): void {
   // First message: search for imagery
   client.addMockResponse(
     matchAll(
-      matchMessageCount(2, 'user'), // System + first user message
+      matchMessageCount(1, 'user'), // First user message
       matchLastUserMessage('search')
     ),
     {
@@ -396,9 +399,27 @@ export function setupArchiveSearchMocks(client: MockOpenAIClient): void {
  * Setup common mock responses for feasibility check scenario
  */
 export function setupFeasibilityCheckMocks(client: MockOpenAIClient): void {
-  // Check feasibility
+  // After feasibility check (check this FIRST to avoid infinite loop)
   client.addMockResponse(
-    matchLastUserMessage('feasible'),
+    (messages) => {
+      const lastMsg = messages[messages.length - 1];
+      return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'check_tasking_feasibility';
+    },
+    {
+      content: 'Good news! Tasking is highly feasible for your location with a 95% feasibility score. I found several capture opportunities in the next 7 days.',
+      finishReason: 'stop',
+    },
+    'Summarize feasibility'
+  );
+
+  // Check feasibility (this should only match before tool is called)
+  client.addMockResponse(
+    (messages) => {
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+      const hasToolResult = messages.some((m) => m.role === 'tool' && 'name' in m && m.name === 'check_tasking_feasibility');
+      return !hasToolResult && lastUserMsg && typeof lastUserMsg.content === 'string' &&
+             lastUserMsg.content.toLowerCase().includes('feasible');
+    },
     {
       content: null,
       toolCalls: [
@@ -418,19 +439,27 @@ export function setupFeasibilityCheckMocks(client: MockOpenAIClient): void {
     'Check feasibility'
   );
 
-  // After feasibility check
+  // After pass prediction (check this FIRST to avoid infinite loop)
   client.addMockResponse(
-    matchLastToolCall('check_tasking_feasibility'),
+    (messages) => {
+      const lastMsg = messages[messages.length - 1];
+      return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'predict_satellite_passes';
+    },
     {
-      content: 'Good news! Tasking is highly feasible for your location with a 95% feasibility score. I found several capture opportunities in the next 7 days.',
+      content: 'I found 2 satellite passes over the next 3 days. The first pass is tomorrow at 10:30 AM UTC with excellent viewing conditions.',
       finishReason: 'stop',
     },
-    'Summarize feasibility'
+    'Summarize passes'
   );
 
-  // Predict satellite passes
+  // Predict satellite passes (this should only match before tool is called)
   client.addMockResponse(
-    matchLastUserMessage('passes'),
+    (messages) => {
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+      const hasToolResult = messages.some((m) => m.role === 'tool' && 'name' in m && m.name === 'predict_satellite_passes');
+      return !hasToolResult && lastUserMsg && typeof lastUserMsg.content === 'string' &&
+             lastUserMsg.content.toLowerCase().includes('passes');
+    },
     {
       content: null,
       toolCalls: [
@@ -447,16 +476,6 @@ export function setupFeasibilityCheckMocks(client: MockOpenAIClient): void {
     },
     'Predict passes'
   );
-
-  // After pass prediction
-  client.addMockResponse(
-    matchLastToolCall('predict_satellite_passes'),
-    {
-      content: 'I found 2 satellite passes over the next 3 days. The first pass is tomorrow at 10:30 AM UTC with excellent viewing conditions.',
-      finishReason: 'stop',
-    },
-    'Summarize passes'
-  );
 }
 
 /**
@@ -465,7 +484,11 @@ export function setupFeasibilityCheckMocks(client: MockOpenAIClient): void {
 export function setupMonitoringSetupMocks(client: MockOpenAIClient): void {
   // Create notification
   client.addMockResponse(
-    matchLastUserMessage('monitoring'),
+    (messages) => {
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+      return lastUserMsg && typeof lastUserMsg.content === 'string' &&
+             lastUserMsg.content.toLowerCase().includes('monitoring');
+    },
     {
       content: null,
       toolCalls: [
@@ -487,7 +510,10 @@ export function setupMonitoringSetupMocks(client: MockOpenAIClient): void {
 
   // After creating notification
   client.addMockResponse(
-    matchLastToolCall('create_monitoring_notification'),
+    (messages) => {
+      const lastMsg = messages[messages.length - 1];
+      return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'create_monitoring_notification';
+    },
     {
       content: 'Successfully created your monitoring notification! You\'ll receive webhooks whenever new imagery matching your criteria becomes available.',
       finishReason: 'stop',
@@ -497,7 +523,11 @@ export function setupMonitoringSetupMocks(client: MockOpenAIClient): void {
 
   // List notifications
   client.addMockResponse(
-    matchLastUserMessage('active'),
+    (messages) => {
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+      return lastUserMsg && typeof lastUserMsg.content === 'string' &&
+             lastUserMsg.content.toLowerCase().includes('active');
+    },
     {
       content: null,
       toolCalls: [
@@ -513,7 +543,10 @@ export function setupMonitoringSetupMocks(client: MockOpenAIClient): void {
 
   // After listing notifications
   client.addMockResponse(
-    matchLastToolCall('list_notifications'),
+    (messages) => {
+      const lastMsg = messages[messages.length - 1];
+      return lastMsg?.role === 'tool' && 'name' in lastMsg && lastMsg.name === 'list_notifications';
+    },
     {
       content: 'You have 2 active monitoring notifications set up. The most recent one is for the coastal area in Southern California.',
       finishReason: 'stop',
