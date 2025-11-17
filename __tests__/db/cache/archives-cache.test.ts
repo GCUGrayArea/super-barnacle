@@ -209,10 +209,10 @@ describe('ArchivesCache', () => {
       await cache.get(baseSearchParams);
 
       // Check hit count in database
+      // Note: Using string interpolation instead of parameterized query due to pg-mem limitations
       const cacheKey = generateCacheKey(baseSearchParams);
       const rows = await db.public.many(
-        'SELECT hit_count FROM archive_searches WHERE cache_key = $1',
-        [cacheKey],
+        `SELECT hit_count, cache_key FROM archive_searches WHERE cache_key = '${cacheKey}'`,
       );
 
       expect(rows[0].hit_count).toBe(3);
@@ -229,10 +229,10 @@ describe('ArchivesCache', () => {
       await cache.get(baseSearchParams);
 
       // Check last_accessed_at is set
+      // Note: Using string interpolation instead of parameterized query due to pg-mem limitations
       const cacheKey = generateCacheKey(baseSearchParams);
       const rows = await db.public.many(
-        'SELECT last_accessed_at FROM archive_searches WHERE cache_key = $1',
-        [cacheKey],
+        `SELECT last_accessed_at, cache_key FROM archive_searches WHERE cache_key = '${cacheKey}'`,
       );
 
       expect(rows[0].last_accessed_at).not.toBeNull();
@@ -244,10 +244,10 @@ describe('ArchivesCache', () => {
       const ttl = 3600; // 1 hour
       await cache.set(baseSearchParams, mockApiResponse, ttl);
 
+      // Note: Using string interpolation instead of parameterized query due to pg-mem limitations
       const cacheKey = generateCacheKey(baseSearchParams);
       const rows = await db.public.many(
-        'SELECT cache_expires_at, created_at FROM archive_searches WHERE cache_key = $1',
-        [cacheKey],
+        `SELECT cache_expires_at, created_at, cache_key FROM archive_searches WHERE cache_key = '${cacheKey}'`,
       );
 
       const expiresAt = new Date(rows[0].cache_expires_at);
@@ -260,16 +260,17 @@ describe('ArchivesCache', () => {
     it('should store search parameters correctly', async () => {
       await cache.set(baseSearchParams, mockApiResponse);
 
+      // Note: Using string interpolation instead of parameterized query due to pg-mem limitations
       const cacheKey = generateCacheKey(baseSearchParams);
       const rows = await db.public.many(
-        'SELECT * FROM archive_searches WHERE cache_key = $1',
-        [cacheKey],
+        `SELECT * FROM archive_searches WHERE cache_key = '${cacheKey}'`,
       );
 
       const entry = rows[0];
       expect(entry.aoi_wkt).toContain('POLYGON');
-      expect(new Date(entry.start_date).toISOString()).toBe(baseSearchParams.fromDate);
-      expect(new Date(entry.end_date).toISOString()).toBe(baseSearchParams.toDate);
+      // Compare dates - pg-mem adds milliseconds (.000Z) to ISO strings
+      expect(new Date(entry.start_date).getTime()).toBe(new Date(baseSearchParams.fromDate).getTime());
+      expect(new Date(entry.end_date).getTime()).toBe(new Date(baseSearchParams.toDate).getTime());
       expect(entry.max_cloud_coverage).toBe(baseSearchParams.maxCloudCoveragePercent);
       expect(entry.result_count).toBe(1);
     });
@@ -286,10 +287,10 @@ describe('ArchivesCache', () => {
       await cache.set(baseSearchParams, updatedResponse);
 
       // Should have updated, not duplicated
+      // Note: Using string interpolation instead of parameterized query due to pg-mem limitations
       const cacheKey = generateCacheKey(baseSearchParams);
       const rows = await db.public.many(
-        'SELECT result_count FROM archive_searches WHERE cache_key = $1',
-        [cacheKey],
+        `SELECT result_count, cache_key FROM archive_searches WHERE cache_key = '${cacheKey}'`,
       );
 
       expect(rows).toHaveLength(1);
@@ -306,10 +307,10 @@ describe('ArchivesCache', () => {
       await cache.set(baseSearchParams, mockApiResponse);
 
       // Hit count should be reset to 0
+      // Note: Using string interpolation instead of parameterized query due to pg-mem limitations
       const cacheKey = generateCacheKey(baseSearchParams);
       const rows = await db.public.many(
-        'SELECT hit_count FROM archive_searches WHERE cache_key = $1',
-        [cacheKey],
+        `SELECT hit_count, cache_key FROM archive_searches WHERE cache_key = '${cacheKey}'`,
       );
 
       expect(rows[0].hit_count).toBe(0);

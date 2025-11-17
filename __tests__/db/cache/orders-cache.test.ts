@@ -77,7 +77,7 @@ describe('OrdersCache', () => {
     orderType: SkyFiOrderType.ARCHIVE,
     orderCost: 10000, // $100.00 in cents
     ownerId: 'user-456',
-    status: DeliveryStatus.Delivered,
+    status: DeliveryStatus.DELIVERY_COMPLETED,
     aoi: 'POLYGON((-97.72 30.28, -97.72 30.29, -97.71 30.29, -97.71 30.28, -97.72 30.28))',
     aoiSqkm: 10.5,
     deliveryDriver: DeliveryDriver.S3,
@@ -92,7 +92,7 @@ describe('OrdersCache', () => {
     archiveId: 'archive-789',
     events: [
       {
-        status: DeliveryStatus.Delivered,
+        status: DeliveryStatus.DELIVERY_COMPLETED,
         timestamp: '2025-01-15T14:00:00Z',
         message: 'Order delivered successfully',
       },
@@ -165,7 +165,7 @@ describe('OrdersCache', () => {
       expect(cached).not.toBeNull();
       expect(cached?.orderId).toBe('order-archive-123');
       expect(cached?.orderType).toBe(SkyFiOrderType.ARCHIVE);
-      expect(cached?.status).toBe(DeliveryStatus.Delivered);
+      expect(cached?.status).toBe(DeliveryStatus.DELIVERY_COMPLETED);
     });
 
     it('should handle database errors gracefully', async () => {
@@ -191,23 +191,23 @@ describe('OrdersCache', () => {
       // Update order with new status
       const updatedOrder = {
         ...mockArchiveOrder,
-        status: DeliveryStatus.Failed,
+        status: DeliveryStatus.DELIVERY_FAILED,
       } as OrderInfoResponse;
 
       await cache.set('order-archive-123', updatedOrder);
 
       // Verify update
       const cached = await cache.get('order-archive-123');
-      expect(cached?.status).toBe(DeliveryStatus.Failed);
+      expect(cached?.status).toBe(DeliveryStatus.DELIVERY_FAILED);
     });
 
     it('should extract and store order metadata correctly', async () => {
       await cache.set('order-archive-123', mockArchiveOrder);
 
       // Query database directly to verify metadata
+      // Note: Using string interpolation instead of parameterized query due to pg-mem limitations
       const result = await db.public.many(
-        'SELECT order_type, total_cost_usd, delivery_driver FROM orders_cache WHERE order_id = $1',
-        ['order-archive-123'],
+        `SELECT order_type, total_cost_usd, delivery_driver, order_id FROM orders_cache WHERE order_id = 'order-archive-123'`,
       );
 
       expect(result[0].order_type).toBe('ARCHIVE');
@@ -239,9 +239,9 @@ describe('OrdersCache', () => {
       });
 
       // Query database to verify timestamp
+      // Note: Using string interpolation instead of parameterized query due to pg-mem limitations
       const result = await db.public.many(
-        'SELECT completed_at FROM orders_cache WHERE order_id = $1',
-        ['order-archive-123'],
+        `SELECT completed_at, order_id FROM orders_cache WHERE order_id = 'order-archive-123'`,
       );
 
       expect(result[0].completed_at).toBeTruthy();
@@ -280,11 +280,11 @@ describe('OrdersCache', () => {
 
     it('should filter by order status', async () => {
       const deliveredOrders = await cache.list({
-        orderStatus: 'DELIVERED' as any,
+        orderStatus: 'DELIVERY_COMPLETED' as any,
       });
 
       expect(deliveredOrders.length).toBe(1);
-      expect(deliveredOrders[0]?.status).toBe(DeliveryStatus.Delivered);
+      expect(deliveredOrders[0]?.status).toBe(DeliveryStatus.DELIVERY_COMPLETED);
     });
 
     it('should support pagination', async () => {
@@ -315,12 +315,12 @@ describe('OrdersCache', () => {
     it('should combine multiple filters', async () => {
       const results = await cache.list({
         orderType: 'ARCHIVE',
-        orderStatus: 'DELIVERED' as any,
+        orderStatus: 'DELIVERY_COMPLETED' as any,
       });
 
       expect(results.length).toBe(1);
       expect(results[0]?.orderType).toBe(SkyFiOrderType.ARCHIVE);
-      expect(results[0]?.status).toBe(DeliveryStatus.Delivered);
+      expect(results[0]?.status).toBe(DeliveryStatus.DELIVERY_COMPLETED);
     });
   });
 
@@ -380,9 +380,9 @@ describe('OrdersCache', () => {
       await cache.set('order-archive-123', mockArchiveOrder);
 
       // Query database to verify no expiration column is set
+      // Note: Using string interpolation instead of parameterized query due to pg-mem limitations
       const result = await db.public.many(
-        'SELECT * FROM orders_cache WHERE order_id = $1',
-        ['order-archive-123'],
+        `SELECT * FROM orders_cache WHERE order_id = 'order-archive-123'`,
       );
 
       // orders_cache table should not have cache_expires_at column

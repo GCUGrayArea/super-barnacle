@@ -505,6 +505,7 @@ export class FeasibilityCache {
     lastAccessed: Date | null;
   }> {
     try {
+      // pg-mem doesn't support COUNT(*) FILTER syntax properly, so we use subqueries
       const result = await query<{
         total_entries: number;
         expired_entries: number;
@@ -514,7 +515,7 @@ export class FeasibilityCache {
       }>(
         `SELECT
           COUNT(*) as total_entries,
-          COUNT(*) FILTER (WHERE cache_expires_at < NOW()) as expired_entries,
+          (SELECT COUNT(*) FROM feasibility_cache WHERE cache_expires_at < NOW()) as expired_entries,
           COALESCE(SUM(hit_count), 0) as total_hits,
           COALESCE(AVG(hit_count), 0) as avg_hits,
           MAX(last_accessed_at) as last_accessed

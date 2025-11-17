@@ -525,7 +525,10 @@ describe('FeasibilityCache', () => {
       );
 
       expect(result[0].provider_windows).toBeTruthy();
-      const windows = JSON.parse(result[0].provider_windows);
+      // pg-mem returns JSONB as objects, not strings
+      const windows = typeof result[0].provider_windows === 'string'
+        ? JSON.parse(result[0].provider_windows)
+        : result[0].provider_windows;
       expect(windows.providers).toBeDefined();
       expect(windows.providers[0].opportunities).toBeDefined();
     });

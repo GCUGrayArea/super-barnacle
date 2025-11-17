@@ -244,6 +244,25 @@ export class OrdersCache {
     const startTime = Date.now();
 
     try {
+      // If updating order_status but not order_data, we need to fetch and update the JSONB
+      let updatedOrderData = updates.order_data;
+
+      if (updates.order_status !== undefined && updates.order_data === undefined) {
+        // Fetch current order_data to update the status field within it
+        const current = await query<OrderCache>(
+          `SELECT order_data FROM orders_cache WHERE order_id = $1`,
+          [orderId],
+        );
+
+        if (current.rows.length > 0 && current.rows[0]) {
+          const currentData = current.rows[0].order_data as unknown as Record<string, unknown>;
+          updatedOrderData = {
+            ...currentData,
+            status: updates.order_status,
+          };
+        }
+      }
+
       const updateFields: string[] = [];
       const updateValues: any[] = [];
       let paramIndex = 1;
@@ -253,9 +272,9 @@ export class OrdersCache {
         updateValues.push(updates.order_status);
       }
 
-      if (updates.order_data !== undefined) {
+      if (updatedOrderData !== undefined) {
         updateFields.push(`order_data = $${paramIndex++}`);
-        updateValues.push(JSON.stringify(updates.order_data));
+        updateValues.push(JSON.stringify(updatedOrderData));
       }
 
       if (updates.completed_at !== undefined) {
@@ -488,6 +507,7 @@ export class OrdersCache {
     lastSynced: Date | null;
   }> {
     try {
+      // pg-mem doesn't support COUNT(*) FILTER syntax properly, so we use subqueries
       const result = await query<{
         total_entries: number;
         archive_orders: number;
@@ -498,10 +518,10 @@ export class OrdersCache {
       }>(
         `SELECT
           COUNT(*) as total_entries,
-          COUNT(*) FILTER (WHERE order_type = 'ARCHIVE') as archive_orders,
-          COUNT(*) FILTER (WHERE order_type = 'TASKING') as tasking_orders,
-          COUNT(*) FILTER (WHERE order_status = 'COMPLETED') as completed_orders,
-          COUNT(*) FILTER (WHERE order_status = 'PENDING') as pending_orders,
+          (SELECT COUNT(*) FROM orders_cache WHERE order_type = 'ARCHIVE') as archive_orders,
+          (SELECT COUNT(*) FROM orders_cache WHERE order_type = 'TASKING') as tasking_orders,
+          (SELECT COUNT(*) FROM orders_cache WHERE order_status = 'COMPLETED') as completed_orders,
+          (SELECT COUNT(*) FROM orders_cache WHERE order_status = 'PENDING') as pending_orders,
           MAX(last_synced_at) as last_synced
          FROM orders_cache`,
       );

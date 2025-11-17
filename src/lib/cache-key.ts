@@ -47,6 +47,9 @@ export function normalizeWKT(wkt: string): string {
   normalized = normalized.replace(/^point/i, 'POINT');
   normalized = normalized.replace(/^linestring/i, 'LINESTRING');
 
+  // Remove space between geometry type and opening parenthesis
+  normalized = normalized.replace(/^(POLYGON|MULTIPOLYGON|POINT|LINESTRING)\s+\(/, '$1(');
+
   return normalized;
 }
 
