@@ -114,8 +114,8 @@ export class MigrationRunner {
         })
         // Sort by version (numeric prefix)
         .sort((a, b) => {
-          const aNum = parseInt(a.version.split('_')[0], 10);
-          const bNum = parseInt(b.version.split('_')[0], 10);
+          const aNum = parseInt(a.version.split('_')[0] || '0', 10);
+          const bNum = parseInt(b.version.split('_')[0] || '0', 10);
           return aNum - bNum;
         });
 
@@ -259,6 +259,10 @@ export class MigrationRunner {
 
     // Get the last applied migration
     const lastMigration = applied[applied.length - 1];
+    if (!lastMigration) {
+      logger.error('Failed to get last migration from applied list');
+      return false;
+    }
 
     // Look for corresponding down migration file
     const downFileName = `${lastMigration.version}.down.sql`;
@@ -369,7 +373,7 @@ export async function createMigration(
   let nextVersion = 1;
   for (const file of migrationFiles) {
     const match = file.match(/^(\d+)_/);
-    if (match) {
+    if (match && match[1]) {
       const version = parseInt(match[1], 10);
       if (version >= nextVersion) {
         nextVersion = version + 1;
@@ -408,15 +412,15 @@ ON CONFLICT (version) DO NOTHING;
  */
 export function getDatabaseConfig(): DatabaseConfig {
   return {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-    database: process.env.DB_NAME || 'skyfi_mcp',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    max: parseInt(process.env.DB_POOL_MAX || '10', 10),
-    idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10),
-    connectionTimeoutMillis: parseInt(process.env.DB_CONNECT_TIMEOUT || '2000', 10),
-    ssl: process.env.DB_SSL === 'true',
+    host: process.env['DB_HOST'] || 'localhost',
+    port: parseInt(process.env['DB_PORT'] || '5432', 10),
+    database: process.env['DB_NAME'] || 'skyfi_mcp',
+    user: process.env['DB_USER'] || 'postgres',
+    password: process.env['DB_PASSWORD'] || 'postgres',
+    max: parseInt(process.env['DB_POOL_MAX'] || '10', 10),
+    idleTimeoutMillis: parseInt(process.env['DB_IDLE_TIMEOUT'] || '30000', 10),
+    connectionTimeoutMillis: parseInt(process.env['DB_CONNECT_TIMEOUT'] || '2000', 10),
+    ssl: process.env['DB_SSL'] === 'true',
   };
 }
 

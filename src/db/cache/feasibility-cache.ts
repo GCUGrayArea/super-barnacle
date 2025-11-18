@@ -10,7 +10,7 @@
 
 import { logger } from '../../lib/logger.js';
 import { query } from '../client.js';
-import { generateCacheKey, normalizeWKT } from '../../lib/cache-key.js';
+import { normalizeWKT } from '../../lib/cache-key.js';
 import type { FeasibilityCache as FeasibilityCacheRow, CreateFeasibilityCache } from '../schema.js';
 import type {
   FeasibilityCheckRequest,
@@ -118,7 +118,7 @@ function generateFeasibilityCacheKey(
   const sortedKeys = Object.keys(normalized).sort();
   const sortedNormalized: Record<string, any> = {};
   for (const key of sortedKeys) {
-    sortedNormalized[key] = normalized[key] as any;
+    sortedNormalized[key] = normalized[key as keyof NormalizedFeasibilityParams];
   }
 
   // Create deterministic JSON string and hash it

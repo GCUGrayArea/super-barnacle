@@ -52,6 +52,7 @@ export class CloudWatchPublisher {
     try {
       // Dynamically import AWS SDK only if CloudWatch is enabled
       // This prevents requiring AWS SDK for local development
+      // @ts-expect-error - AWS SDK is optional dependency
       const { CloudWatchClient } = await import('@aws-sdk/client-cloudwatch');
 
       this.cloudWatch = new CloudWatchClient({
@@ -105,6 +106,7 @@ export class CloudWatchPublisher {
 
     try {
       // Dynamically import PutMetricDataCommand only when needed
+      // @ts-expect-error - AWS SDK is optional dependency
       const { PutMetricDataCommand } = await import('@aws-sdk/client-cloudwatch');
 
       const metricData = metricsToSend.map((metric) => {

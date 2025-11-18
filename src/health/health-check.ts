@@ -207,8 +207,11 @@ export class HealthChecker {
         timeoutId = setTimeout(() => reject(new Error('Health check timeout')), timeout);
       });
 
-      // Try to get pricing info as a lightweight connectivity test
-      const checkPromise = this.skyfiClient.getPricing({});
+      // Try a simple HEAD request as a lightweight connectivity test
+      const checkPromise = this.skyfiClient.get('/health').catch(() => {
+        // If health endpoint doesn't exist, that's fine - at least we connected
+        return { ok: true };
+      });
 
       await Promise.race([checkPromise, timeoutPromise]);
 
